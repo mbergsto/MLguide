@@ -1,7 +1,7 @@
 import requests
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.deps import get_graphdb
+from app.dependencies import get_graphdb
 from app.graphdb import GraphDBClient
 from app.services.sparql_templates import PREFIXES
 from app.services.sparql_results import bindings_to_rows, rows_to_options
