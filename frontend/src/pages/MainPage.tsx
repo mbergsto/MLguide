@@ -10,10 +10,14 @@ export function MainPage() {
   const [submitting, setSubmitting] = useState(false);
   const [rows, setRows] = useState<RecommendationRow[]>([]);
   const [runError, setRunError] = useState<string | null>(null);
+  const [lastRequest, setLastRequest] = useState<RecommendationRequest | null>(
+    null,
+  );
 
   async function onSubmit(req: RecommendationRequest) {
     setSubmitting(true);
     setRunError(null);
+    setLastRequest(req);
 
     try {
       const res = await recommendationsApi.recommend({
@@ -38,7 +42,9 @@ export function MainPage() {
   return (
     <div
       style={{
-        maxWidth: 1100,
+        // maxWidth: 1100,
+        maxWidth: 1600,
+        width: "80%",
         margin: "0 auto",
         padding: 18,
         display: "grid",
@@ -85,7 +91,7 @@ export function MainPage() {
                 {runError}
               </div>
             ) : null}
-            <RecommendationResults rows={rows} />
+            <RecommendationResults rows={rows} lastRequest={lastRequest} />
           </div>
         </div>
       ) : null}

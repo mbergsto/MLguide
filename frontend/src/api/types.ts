@@ -20,5 +20,15 @@ export type RecommendationRow = {
   supportingArticles?: number;
   possibleIfMatches?: number;
   performanceMatches?: number;
-  taskMatches?: number;
+  taskMatch?: number;
+};
+
+export type RecommendationDetailsResponse = {
+  approachIri: string;
+  articles: { article?: string; doi: string; label?: string }[];
+  matches: {
+    conditions: { iri: string; label: string }[];
+    performance: { iri: string; label: string }[];
+    tasks: { iri: string; label: string }[];
+  };
 };
