@@ -1,4 +1,5 @@
 import requests
+from requests.exceptions import Timeout, ReadTimeout
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.dependencies import get_graphdb
@@ -11,6 +12,10 @@ from app.services.recommendation_service import (
     build_details_matches_query,
 )
 from app.services.sparql_results import bindings_to_rows
+
+import time, uuid
+import logging
+logger = logging.getLogger("uvicorn.error") 
 
 router = APIRouter()
 
@@ -29,10 +34,18 @@ def recommend(req: RecommendationRequest, db: GraphDBClient = Depends(get_graphd
 
 @router.post("/details")
 def details(req: RecommendationDetailsRequest, db: GraphDBClient = Depends(get_graphdb)):
+    rid = str(uuid.uuid4())[:8]
     try:
+        logger.info("details rid=%s running articles query", rid)
         raw_articles = db.select(build_details_articles_query(req))
-        raw_matches = db.select(build_details_matches_query(req))
+        logger.info("details rid=%s running matches query", rid)
 
+        raw_matches = None
+        if req.conditions or req.performance_prefs or req.task_iri:
+            raw_matches = db.select(build_details_matches_query(req))
+        else:
+            raw_matches = {"results": {"bindings": []}}  # empty matches if no conditions/performance/task prefs
+            
         articles = bindings_to_rows(raw_articles)
         matches_rows = bindings_to_rows(raw_matches)
 
@@ -61,7 +74,16 @@ def details(req: RecommendationDetailsRequest, db: GraphDBClient = Depends(get_g
                 "tasks": [{"iri": iri, "label": label} for iri, label in tasks.items()],
             },
         }
+    except (Timeout, ReadTimeout):
+        logger.exception("GraphDB timeout in /details rid=%s", rid)
+        raise HTTPException(status_code=504, detail="GraphDB query timed out")
+
     except requests.HTTPError as e:
+        logger.exception("GraphDB HTTPError in /details rid=%s", rid)
         raise HTTPException(status_code=502, detail=f"GraphDB error: {e.response.text}")
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Unhandled error in /details rid=%s", rid)
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
+
+

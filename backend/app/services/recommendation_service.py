@@ -122,42 +122,39 @@ def build_details_matches_query(req: RecommendationDetailsRequest) -> str:
     cond_vals = " ".join(f"<{c}>" for c in req.conditions) if req.conditions else ""
     perf_vals = " ".join(f"<{p}>" for p in req.performance_prefs) if req.performance_prefs else ""
 
-    possible_if = ""
-    performance = ""
-    task = ""
+    blocks = []
 
     if req.conditions:
-        possible_if = f"""
+        blocks.append(f"""
         OPTIONAL {{
           <{req.approach_iri}> :possible_if ?cond .
           VALUES ?cond {{ {cond_vals} }}
+          OPTIONAL {{ ?cond skos:prefLabel ?condLabel }}
         }}
-        """
+        """)
 
     if req.performance_prefs:
-        performance = f"""
+        blocks.append(f"""
         OPTIONAL {{
           <{req.approach_iri}> :performance ?perf .
           VALUES ?perf {{ {perf_vals} }}
+          OPTIONAL {{ ?perf skos:prefLabel ?perfLabel }}
         }}
-        """
+        """)
 
     if req.task_iri:
-        task = f"""
+        blocks.append(f"""
         OPTIONAL {{
           <{req.approach_iri}> :used_for ?task .
           FILTER(?task = <{req.task_iri}>)
+          OPTIONAL {{ ?task skos:prefLabel ?taskLabel }}
         }}
-        """
+        """)
+
+    where = "\n".join(blocks) if blocks else ""
 
     return PREFIXES + f"""
     SELECT DISTINCT ?cond ?condLabel ?perf ?perfLabel ?task ?taskLabel WHERE {{
-      {possible_if}
-      {performance}
-      {task}
-
-      OPTIONAL {{ ?cond skos:prefLabel ?condLabel }}
-      OPTIONAL {{ ?perf skos:prefLabel ?perfLabel }}
-      OPTIONAL {{ ?task skos:prefLabel ?taskLabel }}
+      {where}
     }}
     """
