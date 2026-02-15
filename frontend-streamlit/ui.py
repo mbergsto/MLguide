@@ -6,17 +6,17 @@ from models import Option, RecommendationItem, RecommendationDetailsResponse
 
 
 def render_page_header() -> None:
+    # Main page header
     st.title("ML Method Recommender")
     st.caption("Ranked ML methods based on article evidence and ontology rules.")
 
 
 def render_sidebar(base_url: str) -> None:
+    # Sidebar with static settings/info
     with st.sidebar:
         st.subheader("Settings")
         st.text_input("Backend URL", value=base_url, disabled=True)
-        st.divider()
-        st.caption("Set BACKEND_URL to change this.")
-
+        
 
 def _select_option(label: str, options: list[Option]) -> Option:
     return st.selectbox(label, options=options, format_func=lambda o: o.label)
@@ -31,14 +31,17 @@ def render_form(
     conditions: list[Option],
     performance: list[Option],
 ) -> tuple[dict, bool]:
+    # Form groups all inputs and only triggers on submit
     with st.form("recommend_form"):
         c1, c2, c3 = st.columns(3)
 
+        # Core categorical selections
         with c1:
             phase = _select_option("Lifecycle phase", phases)
             cluster = _select_option("Application cluster", clusters)
             paradigm = _select_option("Learning paradigm", paradigms)
 
+        # Optional task and dataset context
         with c2:
             task = st.selectbox(
                 "Task (optional)",
@@ -51,6 +54,7 @@ def render_form(
                 format_func=lambda o: "—" if o is None else o.label,
             )
 
+        # Multi-select filters and preferences
         with c3:
             cond_selected = st.multiselect(
                 "Conditions",
@@ -63,9 +67,13 @@ def render_form(
                 format_func=lambda o: o.label,
             )
 
+        # Free-text problem description
         problem_text = st.text_area("Problem description (optional)", height=110)
+
+        # Submit button returns True only in the submit rerun
         submitted = st.form_submit_button("Get recommendations")
 
+    # Normalize form values into API payload
     payload = {
         "problem_text": problem_text.strip() or None,
         "phase_iri": phase.iri,
@@ -76,53 +84,49 @@ def render_form(
         "performance_prefs": [o.iri for o in perf_selected],
         "dataset_type_iri": None if dataset_type is None else dataset_type.iri,
     }
+
     return payload, submitted
 
 
-def render_recommendations_table(rows: list[RecommendationItem]) -> None:
+def render_recommendations(rows: list[RecommendationItem]) -> str | None:
+    # Section header
     st.subheader("Recommendations")
 
+    # Empty state
     if not rows:
         st.info("No methods found for the selected inputs.")
-        return
+        return None
+    
+    # Column headers
+    hcols = st.columns([3, 3, 1, 1, 1])
+    hcols[0].markdown("**Method**")
+    # hcols[1].markdown("**Approach**")
+    hcols[2].markdown("**Articles**")
+    hcols[3].markdown("**Perf.**")
+    hcols[4].markdown("**Task**")
 
-    data = []
+    # Render each recommendation as a row with an action button
     for r in rows:
-        data.append(
-            {
-                "Method": r.methodLabel or r.method or "",
-                "Approach": r.approachLabel or r.approach or "",
-                "Articles": r.supportingArticles,
-                "Possible-if": r.possibleIfMatches,
-                "Performance": r.performanceMatches,
-                "Task": r.taskMatch,
-            }
-        )
-    st.dataframe(data, use_container_width=True)
+        method_label = r.methodLabel or r.method or "Unnamed method"
+        cols = st.columns([3, 3, 1, 1, 1])
 
+        with cols[0]:
+            # Button returns True in the rerun where it is clicked
+            clicked = st.button(method_label, key=f"method_{r.approach}")
+        # with cols[1]:
+        #     st.write(r.approachLabel or r.approach or "")
+        with cols[2]:
+            st.write(r.supportingArticles)
+        with cols[3]:
+            st.write(r.performanceMatches)
+        with cols[4]:
+            st.write(r.taskMatch)
 
-def render_details(details: RecommendationDetailsResponse) -> None:
-    st.subheader("Details")
-    st.markdown(f"**Approach IRI:** `{details.approachIri}`")
+        # Return the selected approach identifier
+        if clicked:
+            return r.approach
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown("**Condition matches**")
-        st.write([o.label for o in details.matches.conditions] or "—")
-    with c2:
-        st.markdown("**Performance matches**")
-        st.write([o.label for o in details.matches.performance] or "—")
-    with c3:
-        st.markdown("**Task matches**")
-        st.write([o.label for o in details.matches.tasks] or "—")
-
-    st.markdown("**Supporting articles**")
-    if not details.articles:
-        st.write("—")
-    else:
-        for a in details.articles:
-            label = a.label or a.doi
-            st.write(f"- {label} (DOI: {a.doi})")
+    return None
 
 
 def render_error(e: Exception) -> None:

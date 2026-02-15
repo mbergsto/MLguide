@@ -13,6 +13,7 @@ from models import (
     RecommendationRequest,
     RecommendationItem,
 )
+from config import settings
 
 T = TypeVar("T")
 
@@ -20,8 +21,8 @@ T = TypeVar("T")
 @dataclass(frozen=True)
 class ApiConfig:
     # Holds API base config
-    base_url: str = os.getenv("BACKEND_URL", "http://localhost:8000")
-    timeout_seconds: float = float(os.getenv("HTTP_TIMEOUT", "30"))
+    base_url: str = settings.backend_url
+    timeout_seconds: float = settings.timeout_seconds
 
 
 class ApiError(Exception):
@@ -47,10 +48,11 @@ class ApiClient:
     # Main HTTP client wrapper
     def __init__(self, config: ApiConfig | None = None):
         # Initialize httpx client with config
-        self.config = config or ApiConfig()
+        cfg = config or ApiConfig()
+        self.config = cfg
         self._client = httpx.Client(
-            base_url=self.config.base_url,
-            timeout=self.config.timeout_seconds,
+            base_url=cfg.base_url,
+            timeout=cfg.timeout_seconds,
             headers={"Accept": "application/json"},
         )
 
