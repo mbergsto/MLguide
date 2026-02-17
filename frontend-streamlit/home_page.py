@@ -7,6 +7,7 @@ from config import settings
 from models import RecommendationRequest
 from services import recommendations_service
 from ui import home_page_ui as ui
+from ui import nav_ui
 
 
 @st.cache_data(ttl=settings.meta_cache_ttl_seconds, show_spinner=True)
@@ -15,11 +16,24 @@ def load_meta_cached(cfg: ApiConfig):
     return recommendations_service.fetch_meta_options(cfg)
 
 
+def _reset_home_state() -> None:
+    st.session_state.pop("last_rows", None)
+    st.session_state.pop("last_request_payload", None)
+    st.session_state.pop("selected_approach_iri", None)
+    st.session_state.pop(ui.FORM_MEMORY_KEY, None)
+    for key in ui.FORM_STATE_KEYS:
+        st.session_state.pop(key, None)
+
+
 def main() -> None:
-    st.set_page_config(page_title="ML Method Recommender", layout="wide")
+    st.set_page_config(page_title="MLguide 🤖", layout="wide")
 
     cfg = ApiConfig()
-    ui.render_sidebar(cfg.base_url)
+    home_clicked, _ = nav_ui.render_navbar(show_back=False, key_prefix="home_nav")
+    if home_clicked:
+        _reset_home_state()
+        st.rerun()
+
     ui.render_page_header()
 
     try:
@@ -27,6 +41,8 @@ def main() -> None:
     except Exception as e:
         ui.render_error(e)
         st.stop()
+
+    ui.restore_form_state()
 
     payload, submitted = ui.render_form(
         phases=phases,
@@ -37,6 +53,7 @@ def main() -> None:
         conditions=conditions,
         performance=performance,
     )
+    ui.persist_form_state()
 
     req_payload = dict(payload)
     req_payload.setdefault("max_results", settings.max_results_default)
