@@ -1,5 +1,5 @@
 from typing import List, Optional, Literal, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.services.sparql_templates import PREFIXES
 
@@ -9,6 +9,7 @@ class RecommendationRequest(BaseModel):
     phase_iri: str
     cluster_iri: str
     paradigm_iri: str
+    max_results: int = Field(default=15, ge=1)
     task_iri: Optional[str] = None
     conditions: List[str] = []
     performance_prefs: List[str] = []
@@ -91,7 +92,7 @@ def build_recommendation_query(req: RecommendationRequest) -> str:
       DESC(?taskMatch)
       DESC(?possibleIfMatches)
       DESC(?performanceMatches)
-    LIMIT 15
+    LIMIT {req.max_results}
     """
 
 
