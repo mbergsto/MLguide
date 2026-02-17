@@ -51,7 +51,9 @@ def main() -> None:
     )
 
     # Build request object from current form values
-    req = RecommendationRequest.model_validate(payload)
+    req_payload = dict(payload)
+    req_payload.setdefault("max_results", settings.max_results_default)
+    req = RecommendationRequest.model_validate(req_payload)
 
     # On submit: fetch fresh recommendations and store them for later reruns
     if submitted:
