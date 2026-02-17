@@ -1,9 +1,15 @@
+import base64
+import json
+from datetime import datetime, timezone
 import streamlit as st
 from jinja2 import Template
 from pathlib import Path
 import re
+import httpx
 from api import ApiClient, ApiConfig, ApiError
 from models import RecommendationRequest
+from config import settings
+
 
 st.set_page_config(page_title="Method details", layout="wide")
 
@@ -26,6 +32,67 @@ def _to_template_method(value: str | None) -> str:
         "kneighborsclassifier": "knn",
     }
     return aliases.get(key, key)
+
+
+def _build_notebook_json(method_title: str, python_code: str) -> str:
+    notebook = {
+        "cells": [
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [f"# {method_title}\n", "Generated from ML catalogue template.\n"],
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": python_code.splitlines(keepends=True),
+            },
+        ],
+        "metadata": {
+            "colab": {"name": f"{method_title}.ipynb"},
+            "kernelspec": {
+                "display_name": "Python 3",
+                "language": "python",
+                "name": "python3",
+            },
+            "language_info": {"name": "python"},
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
+    return json.dumps(notebook, ensure_ascii=False, indent=2)
+
+
+def _upload_notebook_and_get_colab_url(notebook_json: str, method_key: str) -> str:
+    token = settings.github_token
+    repo_name = settings.notebooks_repo_name
+    branch = settings.notebooks_repo_branch
+
+    if not token or not repo_name:
+        raise RuntimeError("Missing GITHUB_TOKEN or NOTEBOOKS_REPO_NAME.")
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    file_path = f"notebooks/{method_key or 'method'}_{timestamp}.ipynb"
+    api_url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}"
+    payload = {
+        "message": f"Add generated notebook for {method_key or 'method'}",
+        "content": base64.b64encode(notebook_json.encode("utf-8")).decode("ascii"),
+        "branch": branch,
+    }
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+    res = httpx.put(api_url, headers=headers, json=payload, timeout=30.0)
+    if res.is_error:
+        detail = res.text[:400] if res.text else f"status={res.status_code}"
+        raise RuntimeError(f"GitHub upload failed: {detail}")
+
+    return f"https://colab.research.google.com/github/{repo_name}/blob/{branch}/{file_path}"
 
 # Read navigation state
 approach_iri = st.query_params.get("approach_iri")
@@ -73,6 +140,34 @@ if TEMPLATE_PATH.exists():
         file_name=f"{template_method or 'method'}_template.py",
         mime="text/x-python",
     )
+
+    notebook_json = _build_notebook_json(method_title, rendered_code)
+    colab_key = f"colab_url_{approach_iri}"
+    has_colab_cfg = bool(settings.github_token and settings.notebooks_repo_name)
+
+    if st.button("Open in Colab", type="primary", disabled=not has_colab_cfg):
+        try:
+            with st.spinner("Uploading notebook to GitHub..."):
+                # Debug
+                token = settings.github_token or ""
+                st.write("token length:", len(token.strip()))
+                st.write("token prefix:", token.strip()[:4])   # bare 4 tegn
+                st.write("repo_name:", settings.notebooks_repo_name)
+                # Debug
+
+                st.session_state[colab_key] = _upload_notebook_and_get_colab_url(
+                    notebook_json=notebook_json,
+                    method_key=template_method or "method",
+                )
+        except Exception as e:
+            st.error(f"Could not create Colab link: {e}")
+
+    if not has_colab_cfg:
+        st.caption("Set `GITHUB_TOKEN` and `NOTEBOOKS_REPO_NAME` to enable Colab export.")
+
+    colab_url = st.session_state.get(colab_key)
+    if colab_url:
+        st.link_button("Launch in Colab", colab_url)
 else:
     st.warning(f"Template file not found: {TEMPLATE_PATH}")
 
