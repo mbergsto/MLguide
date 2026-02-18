@@ -94,7 +94,7 @@ def render_articles_search_controls(
 
 
 def render_supporting_articles_header() -> None:
-    st.subheader("Supporting articles")
+    st.subheader("Relevant articles")
 
 
 def render_supporting_articles(articles: list[ArticleItem]) -> None:

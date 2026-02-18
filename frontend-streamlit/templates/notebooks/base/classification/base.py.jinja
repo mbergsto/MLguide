@@ -11,7 +11,13 @@ _No problem description provided._
 {% endif %}
 
 # %% [markdown]
-## 1. Imports
+## 1. Environment setup
+
+# %%
+%pip install -q pandas scikit-learn numpy
+
+# %% [markdown]
+## 2. Imports
 
 # %%
 import pandas as pd
@@ -22,7 +28,7 @@ from sklearn.ensemble import RandomForestClassifier
 {% endblock %}
 
 # %% [markdown]
-## 2. Load and prepare data
+## 3. Load and prepare data
 
 # %%
 # TODO: Replace with your real dataset path.
@@ -42,7 +48,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # %% [markdown]
-## 3. Configure model
+## 4. Configure model
 
 # %%
 {% block model_init %}
@@ -53,7 +59,7 @@ model = RandomForestClassifier(
 {% endblock %}
 
 # %% [markdown]
-## 4. Train and evaluate
+## 5. Train and evaluate
 
 # %%
 model.fit(X_train, y_train)
@@ -65,7 +71,7 @@ print("\\nClassification report:")
 print(classification_report(y_test, y_pred))
 
 # %% [markdown]
-## 5. Method notes
+## 6. Method notes
 {% block method_notes %}
 - Tune hyperparameters for your dataset.
 - Add cross-validation and feature engineering for production use.
