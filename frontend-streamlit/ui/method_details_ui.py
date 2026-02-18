@@ -10,12 +10,12 @@ from utils import build_doi_url
 
 
 def render_missing_navigation_state() -> None:
-    st.title("MLguide 🤖 - Method details")
+    st.title("MLguide 🤖")
     st.info("Failed to load method details. Go back to recommendations.")
 
 
 def render_page_title(method_title: str) -> None:
-    st.title(f"MLguide 🤖 - Method details: {method_title}")
+    st.title(method_title)
 
 
 def render_template_section(rendered_code: str, template_method: str, has_colab_cfg: bool) -> bool:

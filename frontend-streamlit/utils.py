@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import json
 import re
 from typing import Any
 
+import jupytext
+import nbformat
 
 def to_template_method(value: str | None) -> str:
     if not value:
@@ -23,35 +24,31 @@ def to_template_method(value: str | None) -> str:
     return aliases.get(key, key)
 
 
-def build_notebook_json(method_title: str, python_code: str) -> str:
-    notebook = {
-        "cells": [
-            {
-                "cell_type": "markdown",
-                "metadata": {},
-                "source": [f"# {method_title}\\n", "Generated from ML catalogue template.\\n"],
-            },
-            {
-                "cell_type": "code",
-                "execution_count": None,
-                "metadata": {},
-                "outputs": [],
-                "source": python_code.splitlines(keepends=True),
-            },
-        ],
-        "metadata": {
-            "colab": {"name": f"{method_title}.ipynb"},
-            "kernelspec": {
-                "display_name": "Python 3",
-                "language": "python",
-                "name": "python3",
-            },
-            "language_info": {"name": "python"},
-        },
-        "nbformat": 4,
-        "nbformat_minor": 5,
+def _build_notebook_source(method_title: str, python_code: str) -> str:
+    return (
+        "# %% [markdown]\n"
+        f"# {method_title}\n"
+        "Generated from ML catalogue template.\n\n"
+        "# %%\n"
+        f"{python_code.rstrip()}\n"
+    )
+
+
+def _set_notebook_metadata(notebook: Any, method_title: str) -> None:
+    notebook.metadata["colab"] = {"name": f"{method_title}.ipynb"}
+    notebook.metadata["kernelspec"] = {
+        "display_name": "Python 3",
+        "language": "python",
+        "name": "python3",
     }
-    return json.dumps(notebook, ensure_ascii=False, indent=2)
+    notebook.metadata["language_info"] = {"name": "python"}
+
+
+def build_notebook_json(method_title: str, python_code: str) -> str:
+    script = _build_notebook_source(method_title, python_code)
+    notebook = jupytext.reads(script, fmt="py:percent")
+    _set_notebook_metadata(notebook, method_title)
+    return nbformat.writes(notebook, version=4)
 
 
 def find_selected_row(rows: list[Any], approach_iri: str) -> Any | None:
