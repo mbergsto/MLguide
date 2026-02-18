@@ -9,7 +9,7 @@ from state_helpers import ensure_multi_select_state, ensure_single_select_state
 def render_page_header() -> None:
     # Main page header
     st.title("MLguide 🤖")
-    st.caption("Recommend ML methods based on article evidence and ontology rules.")
+    st.caption("Fill in the form and review recommended ML methods for your problem.")
 
 
 def _option_maps(options: list[Option]) -> tuple[list[str], dict[str, str]]:
@@ -122,6 +122,7 @@ def render_form(
 def render_recommendations(rows: list[RecommendationItem]) -> str | None:
     # Section header
     st.subheader("Recommendations")
+    st.caption("Click a method to see more details.")
 
     # Empty state
     if not rows:
@@ -130,7 +131,7 @@ def render_recommendations(rows: list[RecommendationItem]) -> str | None:
     
     # Column headers
     hcols = st.columns([3, 3, 1, 1, 1])
-    hcols[0].markdown("**Method**")
+    hcols[0].markdown("")
     # hcols[1].markdown("**Approach**")
     hcols[2].markdown("**Articles**")
     hcols[3].markdown("**Perf.**")

@@ -8,7 +8,6 @@ from models import RecommendationRequest
 from services import recommendations_service
 import state_helpers as state
 from ui import home_page_ui as ui
-from ui import nav_ui
 
 
 @st.cache_data(ttl=settings.meta_cache_ttl_seconds, show_spinner=True)
@@ -21,11 +20,6 @@ def main() -> None:
     st.set_page_config(page_title="MLguide 🤖", layout="wide")
 
     cfg = ApiConfig()
-    home_clicked, _ = nav_ui.render_navbar(show_back=False, key_prefix="home_nav")
-    if home_clicked:
-        state.reset_home_state()
-        st.rerun()
-
     ui.render_page_header()
 
     try:
