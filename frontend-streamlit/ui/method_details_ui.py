@@ -18,20 +18,31 @@ def render_page_title(method_title: str) -> None:
     st.title(method_title)
 
 
-def render_template_section(rendered_code: str, template_method: str, has_colab_cfg: bool) -> bool:
+def render_template_section(
+    rendered_code: str,
+    template_method: str,
+    notebook_json: str,
+    has_colab_cfg: bool,
+) -> bool:
     st.subheader("Generated ML template")
     st.code(rendered_code, language="python")
 
-    c1, c2 = st.columns(2)
+    c1, c2, _ = st.columns([1.2, 1.1, 4.7], gap="small", vertical_alignment="center")
     with c1:
         st.download_button(
-            label="Download generated template (.py)",
-            data=rendered_code,
-            file_name=f"{template_method or 'method'}_template.py",
-            mime="text/x-python",
+            label="Download notebook (.ipynb)",
+            data=notebook_json,
+            file_name=f"{template_method or 'method'}_template.ipynb",
+            mime="application/x-ipynb+json",
+            use_container_width=True,
         )
     with c2:
-        return st.button("Open in Colab", type="primary", disabled=not has_colab_cfg)
+        return st.button(
+            "Open in Colab",
+            type="primary",
+            disabled=not has_colab_cfg,
+            use_container_width=True,
+        )
 
 def render_colab_config_hint() -> None:
     st.caption("Set `GITHUB_TOKEN` and `NOTEBOOKS_REPO_NAME` to enable Colab export.")

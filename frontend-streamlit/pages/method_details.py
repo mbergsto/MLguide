@@ -70,11 +70,16 @@ try:
         target_column="target",
         family=template_spec.family,
     )
+    notebook_json = build_notebook_json(method_title, rendered_code)
     has_colab_cfg = bool(settings.github_token and settings.notebooks_repo_name)
 
-    open_colab_clicked = ui.render_template_section(rendered_code, template_method, has_colab_cfg)
+    open_colab_clicked = ui.render_template_section(
+        rendered_code=rendered_code,
+        template_method=template_method,
+        notebook_json=notebook_json,
+        has_colab_cfg=has_colab_cfg,
+    )
 
-    notebook_json = build_notebook_json(method_title, rendered_code)
     colab_key = f"colab_url_{approach_iri}"
 
     if open_colab_clicked:
