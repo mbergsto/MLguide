@@ -19,8 +19,7 @@ def render_page_title(method_title: str) -> None:
 
 
 def render_template_section(rendered_code: str, template_method: str, has_colab_cfg: bool) -> bool:
-    st.subheader("Generated scikit-learn template")
-    st.caption(f"Template method key: `{template_method or 'unknown'}`")
+    st.subheader("Generated ML template")
     st.code(rendered_code, language="python")
 
     c1, c2 = st.columns(2)

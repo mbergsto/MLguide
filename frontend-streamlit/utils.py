@@ -6,6 +6,7 @@ from typing import Any
 import jupytext
 import nbformat
 
+
 def to_template_method(value: str | None) -> str:
     if not value:
         return ""
@@ -24,16 +25,6 @@ def to_template_method(value: str | None) -> str:
     return aliases.get(key, key)
 
 
-def _build_notebook_source(method_title: str, python_code: str) -> str:
-    return (
-        "# %% [markdown]\n"
-        f"# {method_title}\n"
-        "Generated from ML catalogue template.\n\n"
-        "# %%\n"
-        f"{python_code.rstrip()}\n"
-    )
-
-
 def _set_notebook_metadata(notebook: Any, method_title: str) -> None:
     notebook.metadata["colab"] = {"name": f"{method_title}.ipynb"}
     notebook.metadata["kernelspec"] = {
@@ -44,9 +35,8 @@ def _set_notebook_metadata(notebook: Any, method_title: str) -> None:
     notebook.metadata["language_info"] = {"name": "python"}
 
 
-def build_notebook_json(method_title: str, python_code: str) -> str:
-    script = _build_notebook_source(method_title, python_code)
-    notebook = jupytext.reads(script, fmt="py:percent")
+def build_notebook_json(method_title: str, notebook_source: str) -> str:
+    notebook = jupytext.reads(f"{notebook_source.rstrip()}\n", fmt="py:percent")
     _set_notebook_metadata(notebook, method_title)
     return nbformat.writes(notebook, version=4)
 

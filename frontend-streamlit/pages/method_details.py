@@ -5,12 +5,13 @@ from pathlib import Path
 
 import streamlit as st
 import streamlit.components.v1 as components
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
 from api import ApiConfig, ApiError
 from config import settings
 from models import RecommendationRequest
 from services import notebook_service, recommendations_service
+from template_registry import resolve_template
 from ui import method_details_ui as ui
 from ui import nav_ui
 from utils import build_notebook_json, find_selected_row, get_method_label, to_template_method
@@ -19,7 +20,7 @@ from utils import build_notebook_json, find_selected_row, get_method_label, to_t
 st.set_page_config(page_title="MLguide 🤖 - Method details", layout="wide")
 
 cfg = ApiConfig()
-TEMPLATE_PATH = Path(__file__).resolve().parents[1] / "templates" / "scikit-learn" / "template_test.jinja"
+TEMPLATE_ROOT = Path(__file__).resolve().parents[1] / "templates" / "notebooks"
 
 
 def _open_in_new_tab(url: str) -> None:
@@ -50,11 +51,25 @@ method_title = method_label or "Selected method"
 
 ui.render_page_title(method_title)
 
-if TEMPLATE_PATH.exists():
-    raw_template = TEMPLATE_PATH.read_text(encoding="utf-8")
-    template = Template(raw_template)
-    template_method = to_template_method(method_title)
-    rendered_code = template.render(method=template_method)
+template_method = to_template_method(method_title)
+template_spec = resolve_template(template_method)
+template_path = TEMPLATE_ROOT / template_spec.template_path
+env = Environment(
+    loader=FileSystemLoader(str(TEMPLATE_ROOT)),
+    autoescape=False,
+    trim_blocks=True,
+    lstrip_blocks=True,
+)
+
+try:
+    template = env.get_template(template_spec.template_path)
+    rendered_code = template.render(
+        method_key=template_method,
+        method_title=method_title,
+        problem_text=payload.get("problem_text"),
+        target_column="target",
+        family=template_spec.family,
+    )
     has_colab_cfg = bool(settings.github_token and settings.notebooks_repo_name)
 
     open_colab_clicked = ui.render_template_section(rendered_code, template_method, has_colab_cfg)
@@ -79,8 +94,8 @@ if TEMPLATE_PATH.exists():
 
     if not has_colab_cfg:
         ui.render_colab_config_hint()
-else:
-    ui.render_template_not_found(TEMPLATE_PATH)
+except TemplateNotFound:
+    ui.render_template_not_found(template_path)
 
 req = RecommendationRequest.model_validate(payload)
 
