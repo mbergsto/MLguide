@@ -9,6 +9,7 @@ from services import recommendations_service
 import state_helpers as state
 from ui import home_page_ui as ui
 
+st.set_page_config(initial_sidebar_state="collapsed")
 
 @st.cache_data(ttl=settings.meta_cache_ttl_seconds, show_spinner=True)
 def load_meta_cached(cfg: ApiConfig):
