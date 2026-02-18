@@ -12,15 +12,15 @@ class TemplateSpec:
 _METHOD_TEMPLATE_MAP: dict[str, TemplateSpec] = {
     "random_forest": TemplateSpec(
         family="classification",
-        template_path="methods/classification/random_forest.jinja",
+        template_path="methods/classification/random_forest.py.jinja",
     ),
     "svm": TemplateSpec(
         family="classification",
-        template_path="methods/classification/svm.jinja",
+        template_path="methods/classification/svm.py.jinja",
     ),
     "linear_regression": TemplateSpec(
         family="regression",
-        template_path="methods/regression/linear_regression.jinja",
+        template_path="methods/regression/linear_regression.py.jinja",
     ),
 }
 
@@ -34,8 +34,8 @@ _REGRESSION_HINTS = {
 }
 
 _FAMILY_FALLBACK_TEMPLATE: dict[str, str] = {
-    "classification": "methods/classification/default.jinja",
-    "regression": "methods/regression/default.jinja",
+    "classification": "methods/classification/default.py.jinja",
+    "regression": "methods/regression/default.py.jinja",
 }
 
 
