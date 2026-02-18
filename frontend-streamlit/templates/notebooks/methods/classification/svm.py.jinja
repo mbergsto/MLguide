@@ -1,0 +1,25 @@
+{% extends "base/classification/base.py.jinja" %}
+
+{% block model_import %}
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+{% endblock %}
+
+{% block model_init %}
+model = make_pipeline(
+    StandardScaler(),
+    SVC(
+        C=1.0,
+        kernel="rbf",
+        gamma="scale",
+        probability=True,
+        random_state=42,
+    ),
+)
+{% endblock %}
+
+{% block method_notes %}
+- SVM often benefits from standardized features.
+- Tune `C` and `gamma` with cross-validation for best results.
+{% endblock %}

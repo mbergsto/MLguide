@@ -1,0 +1,14 @@
+{% extends "base/regression/base.py.jinja" %}
+
+{% block model_import %}
+from sklearn.linear_model import LinearRegression
+{% endblock %}
+
+{% block model_init %}
+model = LinearRegression()
+{% endblock %}
+
+{% block method_notes %}
+- Linear regression is a strong baseline for continuous targets.
+- Check residual patterns and multicollinearity assumptions.
+{% endblock %}

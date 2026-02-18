@@ -1,0 +1,19 @@
+{% extends "base/classification/base.py.jinja" %}
+
+{% block model_import %}
+from sklearn.ensemble import RandomForestClassifier
+{% endblock %}
+
+{% block model_init %}
+model = RandomForestClassifier(
+    n_estimators=300,
+    max_depth=None,
+    min_samples_split=2,
+    random_state=42,
+)
+{% endblock %}
+
+{% block method_notes %}
+- Random Forest is robust to noisy features and non-linear relationships.
+- Start with feature importance inspection before aggressive tuning.
+{% endblock %}
