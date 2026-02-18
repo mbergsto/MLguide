@@ -1,4 +1,4 @@
-# ML-catalogue-app
+# MLguide
 
 Streamlit + FastAPI + GraphDB application for thesis work (related work found in ML-catalogue repo)
 
@@ -51,7 +51,7 @@ Health check: [http://localhost:8000/health](http://localhost:8000/health)
 ### 1. Install dependencies
 
 ```bash
-cd frontend-streamlit
+cd frontend
 python -m venv .venv
 source .venv/bin/activate      # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
