@@ -9,7 +9,7 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
 from api import ApiConfig, ApiError
 from config import settings
-from models import RecommendationRequest
+from models import ArticleItem, RecommendationRequest
 from services import notebook_service, recommendations_service
 from template_registry import resolve_template
 from ui import method_details_ui as ui
@@ -21,6 +21,8 @@ st.set_page_config(page_title="MLguide 🤖 - Method details", layout="wide")
 
 cfg = ApiConfig()
 TEMPLATE_ROOT = Path(__file__).resolve().parents[1] / "templates" / "notebooks"
+ARTICLE_SEARCH_KEY = "details_article_search"
+ARTICLE_SEARCH_CLEAR_KEY = "details_article_search_clear"
 
 
 def _open_in_new_tab(url: str) -> None:
@@ -30,6 +32,21 @@ def _open_in_new_tab(url: str) -> None:
         height=0,
         width=0,
     )
+
+
+def _clear_article_search() -> None:
+    st.session_state[ARTICLE_SEARCH_KEY] = ""
+
+
+def _filter_articles(articles: list[ArticleItem], query: str) -> list[ArticleItem]:
+    q = query.strip().lower()
+    if not q:
+        return articles
+    return [
+        article
+        for article in articles
+        if q in (article.label or "").lower() or q in (article.doi or "").lower()
+    ]
 
 
 @st.cache_data(ttl=settings.meta_cache_ttl_seconds, show_spinner=False)
@@ -176,4 +193,11 @@ with left_col:
 
 with right_col:
     ui.render_context_panel(request_context_items)
-    ui.render_supporting_articles(details.articles)
+    ui.render_supporting_articles_header()
+    article_query = ui.render_articles_search_controls(
+        search_key=ARTICLE_SEARCH_KEY,
+        clear_key=ARTICLE_SEARCH_CLEAR_KEY,
+        on_clear=_clear_article_search,
+    )
+    filtered_articles = _filter_articles(details.articles, article_query)
+    ui.render_supporting_articles(filtered_articles)

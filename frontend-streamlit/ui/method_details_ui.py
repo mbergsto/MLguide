@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import streamlit as st
@@ -7,11 +8,6 @@ import streamlit as st
 from api import ApiError
 from models import ArticleItem
 from utils import build_doi_url
-
-
-def _clear_article_search() -> None:
-    st.session_state["details_article_search"] = ""
-
 
 def render_missing_navigation_state() -> None:
     st.title("MLguide 🤖")
@@ -73,9 +69,11 @@ def render_template_not_found(template_path: Path) -> None:
     st.warning(f"Template file not found: {template_path}")
 
 
-def render_supporting_articles(articles: list[ArticleItem]) -> None:
-    st.subheader("Supporting articles")
-    search_key = "details_article_search"
+def render_articles_search_controls(
+    search_key: str,
+    clear_key: str,
+    on_clear: Callable[[], None],
+) -> str:
     c1, c2 = st.columns([4.0, 1.0], gap="small", vertical_alignment="bottom")
     with c1:
         query = st.text_input(
@@ -83,29 +81,29 @@ def render_supporting_articles(articles: list[ArticleItem]) -> None:
             value="",
             placeholder="Search by title or DOI",
             key=search_key,
-        ).strip().lower()
+            label_visibility="collapsed",
+        )
     with c2:
         st.button(
             "Clear",
-            key="details_article_search_clear",
+            key=clear_key,
             use_container_width=True,
-            on_click=_clear_article_search,
+            on_click=on_clear,
         )
+    return query.strip()
 
-    filtered_articles = [
-        article
-        for article in articles
-        if not query
-        or query in (article.label or "").lower()
-        or query in (article.doi or "").lower()
-    ]
 
+def render_supporting_articles_header() -> None:
+    st.subheader("Supporting articles")
+
+
+def render_supporting_articles(articles: list[ArticleItem]) -> None:
     with st.container(height=360, border=True):
-        if not filtered_articles:
+        if not articles:
             st.write("-")
             return
 
-        for article in filtered_articles:
+        for article in articles:
             title = article.label or "Untitled article"
             doi_url = build_doi_url(article.doi)
             st.markdown(f"- **{title}** - [{article.doi}]({doi_url})")
