@@ -11,7 +11,7 @@ from api import ApiConfig, ApiError
 from config import settings
 from models import RecommendationRequest
 from services import notebook_service, recommendations_service
-from ui import home_page_ui
+import state_helpers as state
 from ui import method_details_ui as ui
 from ui import nav_ui
 from utils import build_notebook_json, find_selected_row, get_method_label, to_template_method
@@ -32,21 +32,12 @@ def _open_in_new_tab(url: str) -> None:
     )
 
 
-def _reset_home_state() -> None:
-    st.session_state.pop("last_rows", None)
-    st.session_state.pop("last_request_payload", None)
-    st.session_state.pop("selected_approach_iri", None)
-    st.session_state.pop(home_page_ui.FORM_MEMORY_KEY, None)
-    for key in home_page_ui.FORM_STATE_KEYS:
-        st.session_state.pop(key, None)
-
-
 approach_iri = st.query_params.get("approach_iri")
 payload = st.session_state.get("last_request_payload")
 
 home_clicked, back_clicked = nav_ui.render_navbar(show_back=True, key_prefix="details_nav")
 if home_clicked:
-    _reset_home_state()
+    state.reset_home_state()
     st.switch_page("home_page.py")
     st.stop()
 

@@ -3,19 +3,7 @@ from __future__ import annotations
 import streamlit as st
 
 from models import Option, RecommendationItem
-
-
-FORM_STATE_KEYS = [
-    "hp_phase",
-    "hp_cluster",
-    "hp_paradigm",
-    "hp_task",
-    "hp_dataset_type",
-    "hp_conditions",
-    "hp_performance",
-    "hp_problem_text",
-]
-FORM_MEMORY_KEY = "hp_form_memory"
+from state_helpers import ensure_multi_select_state, ensure_single_select_state
 
 
 def render_page_header() -> None:
@@ -28,40 +16,6 @@ def _option_maps(options: list[Option]) -> tuple[list[str], dict[str, str]]:
     iris = [o.iri for o in options]
     labels = {o.iri: o.label for o in options}
     return iris, labels
-
-
-def _ensure_single_select_state(key: str, valid_values: list[str], default_value: str) -> None:
-    current = st.session_state.get(key)
-    if current not in valid_values:
-        st.session_state[key] = default_value
-
-
-def _ensure_multi_select_state(key: str, valid_values: set[str]) -> None:
-    current = st.session_state.get(key, [])
-    if not isinstance(current, list):
-        st.session_state[key] = []
-        return
-    st.session_state[key] = [v for v in current if v in valid_values]
-
-
-def restore_form_state() -> None:
-    snapshot = st.session_state.get(FORM_MEMORY_KEY)
-    if not isinstance(snapshot, dict):
-        return
-
-    for key in FORM_STATE_KEYS:
-        if key not in st.session_state and key in snapshot:
-            value = snapshot[key]
-            st.session_state[key] = list(value) if isinstance(value, list) else value
-
-
-def persist_form_state() -> None:
-    snapshot: dict[str, object] = {}
-    for key in FORM_STATE_KEYS:
-        if key in st.session_state:
-            value = st.session_state[key]
-            snapshot[key] = list(value) if isinstance(value, list) else value
-    st.session_state[FORM_MEMORY_KEY] = snapshot
 
 
 def render_form(
@@ -81,13 +35,13 @@ def render_form(
     condition_iris, condition_labels = _option_maps(conditions)
     performance_iris, performance_labels = _option_maps(performance)
 
-    _ensure_single_select_state("hp_phase", phase_iris, phase_iris[0])
-    _ensure_single_select_state("hp_cluster", cluster_iris, cluster_iris[0])
-    _ensure_single_select_state("hp_paradigm", paradigm_iris, paradigm_iris[0])
-    _ensure_single_select_state("hp_task", [""] + task_iris, "")
-    _ensure_single_select_state("hp_dataset_type", [""] + dataset_iris, "")
-    _ensure_multi_select_state("hp_conditions", set(condition_iris))
-    _ensure_multi_select_state("hp_performance", set(performance_iris))
+    ensure_single_select_state("hp_phase", phase_iris, phase_iris[0])
+    ensure_single_select_state("hp_cluster", cluster_iris, cluster_iris[0])
+    ensure_single_select_state("hp_paradigm", paradigm_iris, paradigm_iris[0])
+    ensure_single_select_state("hp_task", [""] + task_iris, "")
+    ensure_single_select_state("hp_dataset_type", [""] + dataset_iris, "")
+    ensure_multi_select_state("hp_conditions", set(condition_iris))
+    ensure_multi_select_state("hp_performance", set(performance_iris))
 
     # Form groups all inputs and only triggers on submit
     with st.form("recommend_form"):
