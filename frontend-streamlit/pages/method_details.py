@@ -32,6 +32,59 @@ def _open_in_new_tab(url: str) -> None:
     )
 
 
+@st.cache_data(ttl=settings.meta_cache_ttl_seconds, show_spinner=False)
+def _load_meta_label_lookup(cfg: ApiConfig) -> dict[str, dict[str, str]]:
+    phases, clusters, paradigms, tasks, dataset_types, conditions, performance = (
+        recommendations_service.fetch_meta_options(cfg)
+    )
+    return {
+        "phase": {o.iri: o.label for o in phases},
+        "cluster": {o.iri: o.label for o in clusters},
+        "paradigm": {o.iri: o.label for o in paradigms},
+        "task": {o.iri: o.label for o in tasks},
+        "dataset_type": {o.iri: o.label for o in dataset_types},
+        "condition": {o.iri: o.label for o in conditions},
+        "performance": {o.iri: o.label for o in performance},
+    }
+
+
+def _label_or_raw(lookup: dict[str, str], iri: str | None) -> str:
+    if not iri:
+        return "-"
+    return lookup.get(iri, iri)
+
+
+def _list_labels_or_raw(lookup: dict[str, str], iris: list[str] | None) -> str:
+    if not iris:
+        return "-"
+    return ", ".join(lookup.get(iri, iri) for iri in iris)
+
+
+def _build_request_context_items(
+    request_payload: dict,
+    lookup: dict[str, dict[str, str]],
+) -> list[tuple[str, str]]:
+    return [
+        ("Phase", _label_or_raw(lookup.get("phase", {}), request_payload.get("phase_iri"))),
+        ("Cluster", _label_or_raw(lookup.get("cluster", {}), request_payload.get("cluster_iri"))),
+        ("Paradigm", _label_or_raw(lookup.get("paradigm", {}), request_payload.get("paradigm_iri"))),
+        ("Task", _label_or_raw(lookup.get("task", {}), request_payload.get("task_iri"))),
+        (
+            "Dataset type",
+            _label_or_raw(lookup.get("dataset_type", {}), request_payload.get("dataset_type_iri")),
+        ),
+        (
+            "Conditions",
+            _list_labels_or_raw(lookup.get("condition", {}), request_payload.get("conditions")),
+        ),
+        (
+            "Performance prefs",
+            _list_labels_or_raw(lookup.get("performance", {}), request_payload.get("performance_prefs")),
+        ),
+        ("Problem text", request_payload.get("problem_text") or "-"),
+    ]
+
+
 approach_iri = st.query_params.get("approach_iri")
 payload = st.session_state.get("last_request_payload")
 
@@ -50,6 +103,14 @@ method_label = get_method_label(selected_row)
 method_title = method_label or "Selected method"
 
 ui.render_page_title(method_title)
+
+request_context_items: list[tuple[str, str]] = []
+try:
+    meta_lookup = _load_meta_label_lookup(cfg)
+    request_context_items = _build_request_context_items(payload, meta_lookup)
+except Exception:
+    # Keep details usable even if metadata lookup fails.
+    request_context_items = _build_request_context_items(payload, {})
 
 template_method = to_template_method(method_title)
 template_spec = resolve_template(template_method)
@@ -73,15 +134,28 @@ try:
     notebook_json = build_notebook_json(method_title, rendered_code)
     has_colab_cfg = bool(settings.github_token and settings.notebooks_repo_name)
 
-    open_colab_clicked = ui.render_template_section(
-        rendered_code=rendered_code,
+    colab_key = f"colab_url_{approach_iri}"
+except TemplateNotFound:
+    ui.render_template_not_found(template_path)
+    st.stop()
+
+req = RecommendationRequest.model_validate(payload)
+
+try:
+    details = recommendations_service.fetch_method_details(cfg, req, approach_iri)
+except ApiError as e:
+    ui.render_api_error(e)
+    st.stop()
+
+left_col, right_col = st.columns([1.65, 1.0], gap="large")
+
+with left_col:
+    ui.render_notebook_preview(rendered_code)
+    open_colab_clicked = ui.render_template_actions(
         template_method=template_method,
         notebook_json=notebook_json,
         has_colab_cfg=has_colab_cfg,
     )
-
-    colab_key = f"colab_url_{approach_iri}"
-
     if open_colab_clicked:
         try:
             with st.spinner("Uploading notebook to GitHub..."):
@@ -99,14 +173,7 @@ try:
 
     if not has_colab_cfg:
         ui.render_colab_config_hint()
-except TemplateNotFound:
-    ui.render_template_not_found(template_path)
 
-req = RecommendationRequest.model_validate(payload)
-
-try:
-    details = recommendations_service.fetch_method_details(cfg, req, approach_iri)
+with right_col:
+    ui.render_context_panel(request_context_items)
     ui.render_supporting_articles(details.articles)
-except ApiError as e:
-    ui.render_api_error(e)
-    st.stop()
