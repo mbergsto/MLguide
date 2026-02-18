@@ -130,7 +130,11 @@ except Exception:
     request_context_items = _build_request_context_items(payload, {})
 
 template_method = to_template_method(method_title)
-template_spec = resolve_template(template_method)
+template_spec = resolve_template(template_method, TEMPLATE_ROOT)
+if template_spec is None:
+    ui.render_template_not_found(TEMPLATE_ROOT / "methods")
+    st.stop()
+
 template_path = TEMPLATE_ROOT / template_spec.template_path
 env = Environment(
     loader=FileSystemLoader(str(TEMPLATE_ROOT)),

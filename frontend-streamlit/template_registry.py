@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -8,21 +10,6 @@ class TemplateSpec:
     family: str
     template_path: str
 
-
-_METHOD_TEMPLATE_MAP: dict[str, TemplateSpec] = {
-    "random_forest": TemplateSpec(
-        family="classification",
-        template_path="methods/classification/random_forest.py.jinja",
-    ),
-    "svm": TemplateSpec(
-        family="classification",
-        template_path="methods/classification/svm.py.jinja",
-    ),
-    "linear_regression": TemplateSpec(
-        family="regression",
-        template_path="methods/regression/linear_regression.py.jinja",
-    ),
-}
 
 _REGRESSION_HINTS = {
     "linear_regression",
@@ -47,13 +34,39 @@ def infer_method_family(method_key: str) -> str:
     return "classification"
 
 
-def resolve_template(method_key: str) -> TemplateSpec:
-    known = _METHOD_TEMPLATE_MAP.get(method_key)
-    if known:
+@lru_cache(maxsize=8)
+def _discover_method_templates(template_root: Path) -> dict[str, TemplateSpec]:
+    methods_root = template_root / "methods"
+    discovered: dict[str, TemplateSpec] = {}
+    for file_path in methods_root.rglob("*.py.jinja"):
+        relative = file_path.relative_to(template_root)
+        parts = relative.parts
+        if len(parts) < 3:
+            continue
+
+        _, family, filename = parts[0], parts[1], parts[2]
+        method_key = filename.removesuffix(".py.jinja")
+        if method_key == "default":
+            continue
+
+        discovered[method_key] = TemplateSpec(
+            family=family,
+            template_path=relative.as_posix(),
+        )
+    return discovered
+
+
+def resolve_template(method_key: str, template_root: Path) -> TemplateSpec | None:
+    discovered = _discover_method_templates(template_root)
+    known = discovered.get(method_key)
+    if known is not None:
         return known
 
     family = infer_method_family(method_key)
-    return TemplateSpec(
+    fallback = TemplateSpec(
         family=family,
         template_path=_FAMILY_FALLBACK_TEMPLATE[family],
     )
+    if (template_root / fallback.template_path).exists():
+        return fallback
+    return None
