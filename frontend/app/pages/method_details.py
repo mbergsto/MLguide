@@ -3,24 +3,26 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from integrations import github_notebook_client
 import streamlit as st
 import streamlit.components.v1 as components
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
-from api import ApiConfig, ApiError
-from config import settings
-from models import ArticleItem, RecommendationRequest
-from services import notebook_service, recommendations_service
-from template_registry import resolve_template
+from integrations.api import ApiConfig, ApiError
+from config.config import settings
+from domain.models import ArticleItem, RecommendationRequest
+from services import recommendations_service
+from services.notebook_builder_service import build_notebook_json
+from services.template_registry import resolve_template
 from ui import method_details_ui as ui
 from ui import nav_ui
-from utils import build_notebook_json, find_selected_row, get_method_label, to_template_method
+from utils.utils import find_selected_row, get_method_label, to_template_method
 
 
 st.set_page_config(page_title="MLguide 🤖 - Method details", layout="wide")
 
 cfg = ApiConfig()
-TEMPLATE_ROOT = Path(__file__).resolve().parents[1] / "templates" / "notebooks"
+TEMPLATE_ROOT = Path(__file__).resolve().parents[2] / "templates" / "notebooks"
 ARTICLE_SEARCH_KEY = "details_article_search"
 ARTICLE_SEARCH_CLEAR_KEY = "details_article_search_clear"
 
@@ -180,7 +182,7 @@ with left_col:
     if open_colab_clicked:
         try:
             with st.spinner("Uploading notebook to GitHub..."):
-                colab_url = notebook_service.upload_notebook_and_get_colab_url(
+                colab_url = github_notebook_client.upload_notebook_and_get_colab_url(
                     notebook_json=notebook_json,
                     method_key=template_method or "method",
                     token=settings.github_token,

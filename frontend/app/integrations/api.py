@@ -7,13 +7,13 @@ from typing import Any, TypeVar
 import httpx
 from pydantic import BaseModel
 
-from models import (
+from domain.models import (
     Option,
     RecommendationDetailsResponse,
     RecommendationRequest,
     RecommendationItem,
 )
-from config import settings
+from config.config import settings
 
 T = TypeVar("T")
 

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import streamlit as st
 
-from api import ApiConfig, ApiError
-from config import settings
-from models import RecommendationRequest
+from integrations.api import ApiConfig, ApiError
+from config.config import settings
+from domain.models import RecommendationRequest
 from services import recommendations_service
-import state_helpers as state
+import utils.state_helpers as state
 from ui import home_page_ui as ui
 
 st.set_page_config(initial_sidebar_state="collapsed")
