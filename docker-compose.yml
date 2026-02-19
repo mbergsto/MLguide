@@ -33,6 +33,8 @@ services:
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       NOTEBOOKS_REPO_NAME: ${NOTEBOOKS_REPO_NAME:-mbergsto/generated-notebooks-mlguide}
       NOTEBOOKS_REPO_BRANCH: ${NOTEBOOKS_REPO_BRANCH:-main}
+    ports:
+      - "8501:8501"
     restart: unless-stopped
 
 volumes:
