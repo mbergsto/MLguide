@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from api import ApiClient, ApiConfig
-from models import RecommendationDetailsResponse, RecommendationRequest, RecommendationItem, Option
+from integrations.api import ApiClient, ApiConfig
+from domain.models import RecommendationDetailsResponse, RecommendationRequest, RecommendationItem, Option
 
 
 def fetch_meta_options(cfg: ApiConfig) -> tuple[

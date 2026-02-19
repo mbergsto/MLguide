@@ -5,9 +5,9 @@ from pathlib import Path
 
 import streamlit as st
 
-from api import ApiError
-from models import ArticleItem
-from utils import build_doi_url
+from integrations.api import ApiError
+from domain.models import ArticleItem
+from utils.utils import build_doi_url
 
 def render_missing_navigation_state() -> None:
     st.title("MLguide 🤖")

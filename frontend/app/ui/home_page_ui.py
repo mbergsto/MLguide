@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from models import Option, RecommendationItem
-from state_helpers import ensure_multi_select_state, ensure_single_select_state
+from domain.models import Option, RecommendationItem
+from utils.state_helpers import ensure_multi_select_state, ensure_single_select_state
 
 
 def render_page_header() -> None:
