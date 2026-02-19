@@ -15,8 +15,6 @@ services:
     environment:
       GRAPHDB_BASE_URL: ${GRAPHDB_BASE_URL:-http://graphdb:7200}
       GRAPHDB_REPO_ID: ${GRAPHDB_REPO_ID:-ML-Ontology}
-    ports:
-      - "8000:8000"
     restart: unless-stopped
 
   frontend:
@@ -34,7 +32,7 @@ services:
       NOTEBOOKS_REPO_NAME: ${NOTEBOOKS_REPO_NAME:-mbergsto/generated-notebooks-mlguide}
       NOTEBOOKS_REPO_BRANCH: ${NOTEBOOKS_REPO_BRANCH:-main}
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8501:8501"
     restart: unless-stopped
 
 volumes:
