@@ -1,0 +1,43 @@
+services:
+  graphdb:
+    image: ontotext/graphdb:11.2.0
+    container_name: graphdb
+    ports:
+      - "7200:7200"
+    volumes:
+      - graphdb-data:/opt/graphdb/home
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: mlguide-backend
+    depends_on:
+      - graphdb
+    environment:
+      GRAPHDB_BASE_URL: ${GRAPHDB_BASE_URL:-http://graphdb:7200}
+      GRAPHDB_REPO_ID: ${GRAPHDB_REPO_ID:-ML-Ontology}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: mlguide-frontend
+    depends_on:
+      - backend
+    environment:
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
+      HTTP_TIMEOUT_SECONDS: ${HTTP_TIMEOUT_SECONDS:-30.0}
+      META_CACHE_TTL_SECONDS: ${META_CACHE_TTL_SECONDS:-3600}
+      MAX_RESULTS_DEFAULT: ${MAX_RESULTS_DEFAULT:-10}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      NOTEBOOKS_REPO_NAME: ${NOTEBOOKS_REPO_NAME:-mbergsto/generated-notebooks-mlguide}
+      NOTEBOOKS_REPO_BRANCH: ${NOTEBOOKS_REPO_BRANCH:-main}
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+
+volumes:
+  graphdb-data:

@@ -13,6 +13,7 @@ This project consists of:
 
 - Python 3.10+
 - A running GraphDB instance
+- Docker + Docker Compose (recommended for deployment)
 
 ---
 
@@ -60,7 +61,9 @@ pip install -r requirements.txt
 ### 2. Start development server
 
 ```bash
-streamlit run home_page.py
+streamlit run app/home_page.py
 ```
 
 Frontend is now running at: [http://localhost:8501](http://localhost:8501)
+
+---
