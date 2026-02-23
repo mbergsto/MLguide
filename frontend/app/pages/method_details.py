@@ -113,7 +113,7 @@ if back_clicked:
     st.stop()
 
 if not approach_iri or not payload:
-    ui.render_missing_navigation_state()
+    st.switch_page("home_page.py")
     st.stop()
 
 rows = st.session_state.get("last_rows", [])
