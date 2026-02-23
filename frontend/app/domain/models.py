@@ -18,7 +18,7 @@ class Option(BaseModel):
     
 class RecommendationRequest(BaseModel):
     problem_text: str | None = None
-    phase_iri: str
+    phase_iri: str | None = None
     cluster_iri: str
     paradigm_iri: str
     max_results: int = Field(default=10, ge=1)

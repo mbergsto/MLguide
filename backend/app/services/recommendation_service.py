@@ -6,7 +6,7 @@ from app.services.sparql_templates import PREFIXES
 
 class RecommendationRequest(BaseModel):
     problem_text: Optional[str] = None
-    phase_iri: str
+    phase_iri: Optional[str] = None
     cluster_iri: str
     paradigm_iri: str
     max_results: int = Field(default=15, ge=1)
@@ -57,6 +57,21 @@ def build_recommendation_query(req: RecommendationRequest) -> str:
         }}
         """
 
+    context_values = [
+        f"VALUES ?cluster {{ <{req.cluster_iri}> }}",
+        f"VALUES ?paradigm {{ <{req.paradigm_iri}> }}",
+    ]
+    article_context_patterns = [
+        "?article mla:hasCluster ?cluster .",
+        "?article mla:hasParadigm ?paradigm .",
+    ]
+    if req.phase_iri:
+        context_values.insert(0, f"VALUES ?phase {{ <{req.phase_iri}> }}")
+        article_context_patterns.insert(0, "?article mla:hasPhase ?phase .")
+
+    context_values_block = "\n      ".join(context_values)
+    article_context_block = "\n      ".join(article_context_patterns)
+
     return PREFIXES + f"""
     SELECT
       ?method ?methodLabel
@@ -66,15 +81,11 @@ def build_recommendation_query(req: RecommendationRequest) -> str:
       (COUNT(DISTINCT ?perfMatch) AS ?performanceMatches)
       (COUNT(DISTINCT ?taskMatch) AS ?taskMatch)
     WHERE {{
-      VALUES (?phase ?cluster ?paradigm) {{
-        (<{req.phase_iri}> <{req.cluster_iri}> <{req.paradigm_iri}>)
-      }}
+      {context_values_block}
 
       ?article a mla:Article ;
-              mla:hasPhase ?phase ;
-              mla:hasCluster ?cluster ;
-              mla:hasParadigm ?paradigm ;
               mla:mentionsMethod ?method .
+      {article_context_block}
 
       OPTIONAL {{ ?method rdfs:label ?methodLabel }}
 
@@ -97,19 +108,29 @@ def build_recommendation_query(req: RecommendationRequest) -> str:
 
 
 def build_details_articles_query(req: RecommendationDetailsRequest) -> str:
+    context_values = [
+        f"VALUES ?cluster {{ <{req.cluster_iri}> }}",
+        f"VALUES ?paradigm {{ <{req.paradigm_iri}> }}",
+    ]
+    article_context_patterns = [
+        "?article mla:hasCluster ?cluster .",
+        "?article mla:hasParadigm ?paradigm .",
+    ]
+    if req.phase_iri:
+        context_values.insert(0, f"VALUES ?phase {{ <{req.phase_iri}> }}")
+        article_context_patterns.insert(0, "?article mla:hasPhase ?phase .")
+
+    context_values_block = "\n      ".join(context_values)
+    article_context_block = "\n      ".join(article_context_patterns)
+
     return PREFIXES + f"""
     SELECT DISTINCT ?article ?doi ?label WHERE {{
-      
-      VALUES (?phase ?cluster ?paradigm) {{
-        (<{req.phase_iri}> <{req.cluster_iri}> <{req.paradigm_iri}>)
-      }}
+      {context_values_block}
 
       ?article a mla:Article ;
-              mla:hasPhase ?phase ;
-              mla:hasCluster ?cluster ;
-              mla:hasParadigm ?paradigm ;
               mla:mentionsMethod ?method ;
               schema:doi ?doi .
+      {article_context_block}
       
       ?method skos:exactMatch <{req.approach_iri}> .
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 import streamlit as st
 
 from domain.models import Option, RecommendationItem
@@ -16,6 +17,134 @@ def _option_maps(options: list[Option]) -> tuple[list[str], dict[str, str]]:
     iris = [o.iri for o in options]
     labels = {o.iri: o.label for o in options}
     return iris, labels
+
+
+def _contains_any(text: str, candidates: tuple[str, ...]) -> bool:
+    text_l = text.lower()
+    return any(candidate in text_l for candidate in candidates)
+
+
+def _suggest_paradigm_iri(paradigms: list[Option], guide_choice: str) -> str | None:
+    for option in paradigms:
+        label = option.label.lower()
+        if guide_choice == "I have labeled target values/classes" and _contains_any(
+            label, ("supervised",)
+        ):
+            return option.iri
+        if guide_choice == "I mostly want patterns/groups without labels" and _contains_any(
+            label, ("unsupervised",)
+        ):
+            return option.iri
+        if guide_choice == "I have some labels, but not many" and _contains_any(
+            label, ("semi-supervised", "semisupervised")
+        ):
+            return option.iri
+        if guide_choice == "An agent learns from rewards/actions" and _contains_any(
+            label, ("reinforcement",)
+        ):
+            return option.iri
+    return None
+
+
+def _cluster_keyword_metadata(clusters: list[Option]) -> tuple[list[str], dict[str, set[str]], dict[str, set[str]]]:
+    keyword_order: list[str] = []
+    keyword_display_by_norm: dict[str, str] = {}
+    keyword_to_cluster_iris: dict[str, set[str]] = defaultdict(set)
+    cluster_keywords_by_iri: dict[str, set[str]] = defaultdict(set)
+
+    for cluster in clusters:
+        # Cluster labels are expected to be comma-separated keywords.
+        for raw_keyword in cluster.label.split(","):
+            keyword = raw_keyword.strip()
+            if not keyword:
+                continue
+            norm = keyword.casefold()
+            display = keyword_display_by_norm.get(norm)
+            if display is None:
+                keyword_display_by_norm[norm] = keyword
+                keyword_order.append(keyword)
+                display = keyword
+            keyword_to_cluster_iris[display].add(cluster.iri)
+            cluster_keywords_by_iri[cluster.iri].add(norm)
+
+    return keyword_order, keyword_to_cluster_iris, cluster_keywords_by_iri
+
+
+def _render_cluster_keyword_picker(
+    clusters: list[Option],
+    cluster_iris: list[str],
+    cluster_labels: dict[str, str],
+) -> list[str]:
+    keywords, keyword_to_cluster_iris, cluster_keywords_by_iri = _cluster_keyword_metadata(clusters)
+    if not keywords:
+        return cluster_iris
+
+    st.markdown("**Cluster keyword helper**")
+    st.caption(
+        "Pick keywords that describe the problem. Matching clusters are used in the cluster dropdown."
+    )
+
+    if hasattr(st, "pills"):
+        selected_keywords = st.pills(
+            "Cluster keywords",
+            options=keywords,
+            selection_mode="multi",
+            key="hp_cluster_keywords",
+            label_visibility="collapsed",
+        )
+    else:
+        selected_keywords = st.multiselect(
+            "Cluster keywords",
+            options=keywords,
+            key="hp_cluster_keywords",
+            label_visibility="collapsed",
+        )
+
+    if not selected_keywords:
+        return cluster_iris
+
+    selected_norms = {keyword.casefold() for keyword in selected_keywords}
+    scored: list[tuple[int, str, str]] = []
+    for iri in cluster_iris:
+        overlap = len(cluster_keywords_by_iri.get(iri, set()) & selected_norms)
+        if overlap > 0:
+            scored.append((-overlap, cluster_labels.get(iri, "").lower(), iri))
+
+    if not scored:
+        st.info("No cluster labels matched the selected keywords. Showing all clusters.")
+        return cluster_iris
+
+    matched_cluster_iris = [iri for _, _, iri in sorted(scored)]
+    st.caption(f"Matching clusters: {len(matched_cluster_iris)} of {len(cluster_iris)}")
+    return matched_cluster_iris
+
+
+def _render_paradigm_guidance(paradigms: list[Option], paradigm_labels: dict[str, str]) -> None:
+    if not paradigms:
+        return
+
+    guide_choice = st.radio(
+        "Learning paradigm guide: Which setup best matches your problem?",
+        options=[
+            "Not sure / skip",
+            "I have labeled target values/classes",
+            "I mostly want patterns/groups without labels",
+            "I have some labels, but not many",
+            "An agent learns from rewards/actions",
+        ],
+        key="hp_paradigm_guide",
+    )
+    if guide_choice == "Not sure / skip":
+        return
+
+    suggested_iri = _suggest_paradigm_iri(paradigms, guide_choice)
+    if not suggested_iri:
+        st.caption("No direct paradigm match found from labels. You can choose manually below.")
+        return
+
+    st.caption(f"Suggested paradigm: `{paradigm_labels[suggested_iri]}`")
+    if st.button("Use suggested learning paradigm", key="hp_apply_paradigm_guide", use_container_width=True):
+        st.session_state["hp_paradigm"] = suggested_iri
 
 
 def render_form(
@@ -35,9 +164,15 @@ def render_form(
     condition_iris, condition_labels = _option_maps(conditions)
     performance_iris, performance_labels = _option_maps(performance)
 
-    ensure_single_select_state("hp_phase", phase_iris, phase_iris[0])
-    ensure_single_select_state("hp_cluster", cluster_iris, cluster_iris[0])
-    ensure_single_select_state("hp_paradigm", paradigm_iris, paradigm_iris[0])
+    cluster_select_iris = _render_cluster_keyword_picker(clusters, cluster_iris, cluster_labels)
+
+    _render_paradigm_guidance(paradigms, paradigm_labels)
+
+    # Lifecycle phase selection is temporarily disabled.
+    # Keep state logic commented so it is easy to restore later.
+    # ensure_single_select_state("hp_phase", phase_iris, phase_iris[0] if phase_iris else "")
+    ensure_single_select_state("hp_cluster", cluster_select_iris, cluster_select_iris[0] if cluster_select_iris else "")
+    ensure_single_select_state("hp_paradigm", paradigm_iris, paradigm_iris[0] if paradigm_iris else "")
     ensure_single_select_state("hp_task", [""] + task_iris, "")
     ensure_single_select_state("hp_dataset_type", [""] + dataset_iris, "")
     ensure_multi_select_state("hp_conditions", set(condition_iris))
@@ -49,15 +184,16 @@ def render_form(
 
         # Core categorical selections
         with c1:
-            phase_iri = st.selectbox(
-                "Lifecycle phase",
-                options=phase_iris,
-                format_func=lambda iri: phase_labels[iri],
-                key="hp_phase",
-            )
+            # Lifecycle phase selection is temporarily disabled.
+            # phase_iri = st.selectbox(
+            #     "Lifecycle phase",
+            #     options=phase_iris,
+            #     format_func=lambda iri: phase_labels[iri],
+            #     key="hp_phase",
+            # )
             cluster_iri = st.selectbox(
                 "Application cluster",
-                options=cluster_iris,
+                options=cluster_select_iris,
                 format_func=lambda iri: cluster_labels[iri],
                 key="hp_cluster",
             )
@@ -107,7 +243,8 @@ def render_form(
     # Normalize form values into API payload
     payload = {
         "problem_text": problem_text.strip() or None,
-        "phase_iri": phase_iri,
+        # "phase_iri": phase_iri,
+        "phase_iri": None,
         "cluster_iri": cluster_iri,
         "paradigm_iri": paradigm_iri,
         "task_iri": None if task_iri == "" else task_iri,
