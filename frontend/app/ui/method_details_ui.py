@@ -9,11 +9,6 @@ from integrations.api import ApiError
 from domain.models import ArticleItem
 from utils.utils import build_doi_url
 
-def render_missing_navigation_state() -> None:
-    st.title("MLguide 🤖")
-    st.info("Failed to load method details. Go back to recommendations.")
-
-
 def render_page_title(method_title: str) -> None:
     st.title(method_title)
 
