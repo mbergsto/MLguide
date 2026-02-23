@@ -86,8 +86,6 @@ def _build_request_context_items(
     cluster_value = _list_labels_or_raw(lookup.get("cluster", {}), request_payload.get("cluster_iris"))
 
     return [
-        ("Phase", _label_or_raw(lookup.get("phase", {}), request_payload.get("phase_iri"))),
-        ("Cluster", cluster_value),
         ("Paradigm", _label_or_raw(lookup.get("paradigm", {}), request_payload.get("paradigm_iri"))),
         ("Task", _label_or_raw(lookup.get("task", {}), request_payload.get("task_iri"))),
         (
