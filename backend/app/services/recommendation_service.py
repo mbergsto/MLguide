@@ -7,7 +7,7 @@ from app.services.sparql_templates import PREFIXES
 class RecommendationRequest(BaseModel):
     problem_text: Optional[str] = None
     phase_iri: Optional[str] = None
-    cluster_iri: str
+    cluster_iris: List[str] = Field(default_factory=list)
     paradigm_iri: str
     max_results: int = Field(default=15, ge=1)
     task_iri: Optional[str] = None
@@ -17,6 +17,24 @@ class RecommendationRequest(BaseModel):
 
 class RecommendationDetailsRequest(RecommendationRequest):
     approach_iri: str
+
+
+def _dedupe_nonempty(values: List[str]) -> List[str]:
+    seen: set[str] = set()
+    result: List[str] = []
+    for value in values:
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
+
+
+def _values_clause(var_name: str, iris: List[str]) -> str:
+    if not iris:
+        return ""
+    iri_tokens = " ".join(f"<{iri}>" for iri in _dedupe_nonempty(iris))
+    return f"VALUES ?{var_name} {{ {iri_tokens} }}"
 
 
 def build_recommendation_query(req: RecommendationRequest) -> str:
@@ -57,14 +75,13 @@ def build_recommendation_query(req: RecommendationRequest) -> str:
         }}
         """
 
-    context_values = [
-        f"VALUES ?cluster {{ <{req.cluster_iri}> }}",
-        f"VALUES ?paradigm {{ <{req.paradigm_iri}> }}",
-    ]
-    article_context_patterns = [
-        "?article mla:hasCluster ?cluster .",
-        "?article mla:hasParadigm ?paradigm .",
-    ]
+    cluster_iris = _dedupe_nonempty(req.cluster_iris)
+    context_values = [f"VALUES ?paradigm {{ <{req.paradigm_iri}> }}"]
+    article_context_patterns = ["?article mla:hasParadigm ?paradigm ."]
+    cluster_values_clause = _values_clause("cluster", cluster_iris)
+    if cluster_values_clause:
+        context_values.insert(0, cluster_values_clause)
+        article_context_patterns.insert(0, "?article mla:hasCluster ?cluster .")
     if req.phase_iri:
         context_values.insert(0, f"VALUES ?phase {{ <{req.phase_iri}> }}")
         article_context_patterns.insert(0, "?article mla:hasPhase ?phase .")
@@ -108,14 +125,13 @@ def build_recommendation_query(req: RecommendationRequest) -> str:
 
 
 def build_details_articles_query(req: RecommendationDetailsRequest) -> str:
-    context_values = [
-        f"VALUES ?cluster {{ <{req.cluster_iri}> }}",
-        f"VALUES ?paradigm {{ <{req.paradigm_iri}> }}",
-    ]
-    article_context_patterns = [
-        "?article mla:hasCluster ?cluster .",
-        "?article mla:hasParadigm ?paradigm .",
-    ]
+    cluster_iris = _dedupe_nonempty(req.cluster_iris)
+    context_values = [f"VALUES ?paradigm {{ <{req.paradigm_iri}> }}"]
+    article_context_patterns = ["?article mla:hasParadigm ?paradigm ."]
+    cluster_values_clause = _values_clause("cluster", cluster_iris)
+    if cluster_values_clause:
+        context_values.insert(0, cluster_values_clause)
+        article_context_patterns.insert(0, "?article mla:hasCluster ?cluster .")
     if req.phase_iri:
         context_values.insert(0, f"VALUES ?phase {{ <{req.phase_iri}> }}")
         article_context_patterns.insert(0, "?article mla:hasPhase ?phase .")

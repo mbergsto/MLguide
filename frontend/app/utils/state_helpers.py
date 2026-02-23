@@ -7,7 +7,6 @@ FORM_STATE_KEYS = [
     "hp_paradigm_guide",
     "hp_cluster_keywords",
     "hp_phase",
-    "hp_cluster",
     "hp_paradigm",
     "hp_task",
     "hp_dataset_type",

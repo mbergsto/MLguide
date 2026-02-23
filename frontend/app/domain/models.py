@@ -19,7 +19,7 @@ class Option(BaseModel):
 class RecommendationRequest(BaseModel):
     problem_text: str | None = None
     phase_iri: str | None = None
-    cluster_iri: str
+    cluster_iris: list[str] = Field(default_factory=list)
     paradigm_iri: str
     max_results: int = Field(default=10, ge=1)
     task_iri: str | None = None

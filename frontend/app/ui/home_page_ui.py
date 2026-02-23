@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from pathlib import Path
 import streamlit as st
 
 from domain.models import Option, RecommendationItem
 from utils.state_helpers import ensure_multi_select_state, ensure_single_select_state
+
+
+CLUSTER_KEYWORD_BLOCKLIST_PATH = Path(__file__).resolve().parents[1] / "config" / "cluster_keyword_blocklist.txt"
 
 
 def render_page_header() -> None:
@@ -22,6 +26,21 @@ def _option_maps(options: list[Option]) -> tuple[list[str], dict[str, str]]:
 def _contains_any(text: str, candidates: tuple[str, ...]) -> bool:
     text_l = text.lower()
     return any(candidate in text_l for candidate in candidates)
+
+
+def _load_cluster_keyword_blocklist() -> set[str]:
+    try:
+        raw = CLUSTER_KEYWORD_BLOCKLIST_PATH.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return set()
+
+    blocked: set[str] = set()
+    for line in raw.splitlines():
+        token = line.strip()
+        if not token or token.startswith("#"):
+            continue
+        blocked.add(token.casefold())
+    return blocked
 
 
 def _suggest_paradigm_iri(paradigms: list[Option], guide_choice: str) -> str | None:
@@ -47,6 +66,7 @@ def _suggest_paradigm_iri(paradigms: list[Option], guide_choice: str) -> str | N
 
 
 def _cluster_keyword_metadata(clusters: list[Option]) -> tuple[list[str], dict[str, set[str]], dict[str, set[str]]]:
+    blocked_keywords = _load_cluster_keyword_blocklist()
     keyword_order: list[str] = []
     keyword_display_by_norm: dict[str, str] = {}
     keyword_to_cluster_iris: dict[str, set[str]] = defaultdict(set)
@@ -59,6 +79,8 @@ def _cluster_keyword_metadata(clusters: list[Option]) -> tuple[list[str], dict[s
             if not keyword:
                 continue
             norm = keyword.casefold()
+            if norm in blocked_keywords:
+                continue
             display = keyword_display_by_norm.get(norm)
             if display is None:
                 keyword_display_by_norm[norm] = keyword
@@ -81,7 +103,7 @@ def _render_cluster_keyword_picker(
 
     st.markdown("**Cluster keyword helper**")
     st.caption(
-        "Pick keywords that describe the problem. Matching clusters are used in the cluster dropdown."
+        "Pick keywords that describe the problem. Matching clusters are used to filter recommendations."
     )
 
     if hasattr(st, "pills"):
@@ -171,7 +193,6 @@ def render_form(
     # Lifecycle phase selection is temporarily disabled.
     # Keep state logic commented so it is easy to restore later.
     # ensure_single_select_state("hp_phase", phase_iris, phase_iris[0] if phase_iris else "")
-    ensure_single_select_state("hp_cluster", cluster_select_iris, cluster_select_iris[0] if cluster_select_iris else "")
     ensure_single_select_state("hp_paradigm", paradigm_iris, paradigm_iris[0] if paradigm_iris else "")
     ensure_single_select_state("hp_task", [""] + task_iris, "")
     ensure_single_select_state("hp_dataset_type", [""] + dataset_iris, "")
@@ -191,12 +212,6 @@ def render_form(
             #     format_func=lambda iri: phase_labels[iri],
             #     key="hp_phase",
             # )
-            cluster_iri = st.selectbox(
-                "Application cluster",
-                options=cluster_select_iris,
-                format_func=lambda iri: cluster_labels[iri],
-                key="hp_cluster",
-            )
             paradigm_iri = st.selectbox(
                 "Learning paradigm",
                 options=paradigm_iris,
@@ -245,7 +260,7 @@ def render_form(
         "problem_text": problem_text.strip() or None,
         # "phase_iri": phase_iri,
         "phase_iri": None,
-        "cluster_iri": cluster_iri,
+        "cluster_iris": cluster_select_iris,
         "paradigm_iri": paradigm_iri,
         "task_iri": None if task_iri == "" else task_iri,
         "conditions": cond_selected_iris,
