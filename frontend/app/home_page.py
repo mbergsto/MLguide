@@ -11,7 +11,7 @@ from ui import home_page_ui as ui
 
 st.set_page_config(initial_sidebar_state="collapsed")
 
-@st.cache_data(ttl=settings.meta_cache_ttl_seconds, show_spinner=True)
+@st.cache_data(ttl=settings.meta_cache_ttl_seconds, show_spinner="Loading...")
 def load_meta_cached(cfg: ApiConfig):
     # Load metadata for form options with caching to avoid redundant API calls.
     return recommendations_service.fetch_meta_options(cfg)
