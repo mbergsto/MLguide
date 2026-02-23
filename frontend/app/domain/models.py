@@ -57,4 +57,10 @@ class RecommendationDetailsResponse(BaseModel):
 
 class RecommendationListResponse(BaseModel):
     results: list[RecommendationItem] = Field(default_factory=list)
+
+
+class UserSession(BaseModel):
+    id: int
+    username: str
+    created_at: str
     

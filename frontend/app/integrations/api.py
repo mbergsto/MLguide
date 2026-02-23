@@ -12,6 +12,7 @@ from domain.models import (
     RecommendationDetailsResponse,
     RecommendationRequest,
     RecommendationItem,
+    UserSession,
 )
 from config.config import settings
 
@@ -161,6 +162,15 @@ class ApiClient:
             data = self._._post("/recommendations/details", payload)
             return RecommendationDetailsResponse.model_validate(data)
 
+    class Users:
+        # Wrapper for /users endpoints
+        def __init__(self, outer: "ApiClient"):
+            self._ = outer
+
+        def login(self, username: str) -> UserSession:
+            data = self._._post("/users/login", {"username": username})
+            return UserSession.model_validate(data)
+
     @property
     def meta(self) -> "ApiClient.Meta":
         # Access meta API
@@ -170,3 +180,8 @@ class ApiClient:
     def recommendations(self) -> "ApiClient.Recommendations":
         # Access recommendation API
         return ApiClient.Recommendations(self)
+
+    @property
+    def users(self) -> "ApiClient.Users":
+        # Access users API
+        return ApiClient.Users(self)

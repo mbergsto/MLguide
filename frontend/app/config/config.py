@@ -1,16 +1,19 @@
-from pydantic import BaseModel
-from dotenv import load_dotenv
-import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()
+class Settings(BaseSettings):
+    backend_url: str = "http://localhost:8000"
+    timeout_seconds: float = 30.0
+    meta_cache_ttl_seconds: int = 3600
+    max_results_default: int = 10
 
-class Settings(BaseModel):
-    backend_url: str = os.getenv("BACKEND_URL", "http://localhost:8000")
-    timeout_seconds: float = float(os.getenv("HTTP_TIMEOUT_SECONDS", "30.0"))
-    meta_cache_ttl_seconds: int = int(os.getenv("META_CACHE_TTL_SECONDS", "3600"))
-    max_results_default: int = int(os.getenv("MAX_RESULTS_DEFAULT", "10"))
-    github_token: str | None = os.getenv("GITHUB_TOKEN")
-    notebooks_repo_name: str = os.getenv("NOTEBOOKS_REPO_NAME", "mbergsto/generated-notebooks-mlguide")
-    notebooks_repo_branch: str = os.getenv("NOTEBOOKS_REPO_BRANCH", "main")
-    
+    # GitHub API setting, have to be moved to backend later
+    github_token: str | None = None
+    notebooks_repo_name: str = "mbergsto/generated-notebooks-mlguide"
+    notebooks_repo_branch: str = "main"
+
+    model_config = SettingsConfigDict(
+        env_file="../.env",  
+        extra="ignore"
+    )
+
 settings = Settings()

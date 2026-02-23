@@ -16,12 +16,14 @@ from services.notebook_builder_service import build_notebook_json
 from services.template_registry import resolve_template
 from ui import method_details_ui as ui
 from ui import nav_ui
+from ui import sidebar_auth_ui
 from utils.utils import find_selected_row, get_method_label, to_template_method
 
 
 st.set_page_config(page_title="MLguide 🤖 - Method details", layout="wide")
 
 cfg = ApiConfig()
+sidebar_auth_ui.render_sidebar_auth(cfg)
 TEMPLATE_ROOT = Path(__file__).resolve().parents[2] / "templates" / "notebooks"
 ARTICLE_SEARCH_KEY = "details_article_search"
 ARTICLE_SEARCH_CLEAR_KEY = "details_article_search_clear"

@@ -33,6 +33,7 @@ platformdirs==4.9.2
 protobuf==6.33.5
 pyarrow==23.0.0
 pydantic==2.12.5
+pydantic-settings==2.13.1
 pydantic_core==2.41.5
 pydeck==0.9.1
 python-dateutil==2.9.0.post0

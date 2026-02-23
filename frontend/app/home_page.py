@@ -8,6 +8,8 @@ from domain.models import RecommendationRequest
 from services import recommendations_service
 import utils.state_helpers as state
 from ui import home_page_ui as ui
+from ui import nav_ui
+from ui import sidebar_auth_ui
 
 st.set_page_config(initial_sidebar_state="collapsed")
 
@@ -21,6 +23,7 @@ def main() -> None:
     st.set_page_config(page_title="MLguide 🤖", layout="wide")
 
     cfg = ApiConfig()
+    sidebar_auth_ui.render_sidebar_auth(cfg)
     ui.render_page_header()
 
     try:
