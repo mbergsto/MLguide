@@ -9,6 +9,16 @@ from utils.state_helpers import ensure_multi_select_state, ensure_single_select_
 
 
 CLUSTER_KEYWORD_BLOCKLIST_PATH = Path(__file__).resolve().parents[1] / "config" / "cluster_keyword_blocklist.txt"
+PARADIGM_GUIDE_SKIP = "Not sure / skip"
+PARADIGM_GUIDE_SUPERVISED = "**Supervised Learning**: I have historical data with with known outcomes (labels) that I want to predict or classify"
+PARADIGM_GUIDE_UNSUPERVISED = "**Unsupervised Learning**: The goal is to explore patterns, group similar cases, or detect anomalies without specific known outcomes (labels)"
+PARADIGM_GUIDE_REINFORCEMENT = "**Reinforcement Learning**: The problem involves learning decisions over time based on feedback or rewards"
+PARADIGM_GUIDE_OPTIONS = [
+    PARADIGM_GUIDE_SKIP,
+    PARADIGM_GUIDE_SUPERVISED,
+    PARADIGM_GUIDE_UNSUPERVISED,
+    PARADIGM_GUIDE_REINFORCEMENT,
+]
 
 
 def render_page_header() -> None:
@@ -46,19 +56,15 @@ def _load_cluster_keyword_blocklist() -> set[str]:
 def _suggest_paradigm_iri(paradigms: list[Option], guide_choice: str) -> str | None:
     for option in paradigms:
         label = option.label.lower()
-        if guide_choice == "I have labeled target values/classes" and _contains_any(
+        if guide_choice == PARADIGM_GUIDE_SUPERVISED and _contains_any(
             label, ("supervised",)
         ):
             return option.iri
-        if guide_choice == "I mostly want patterns/groups without labels" and _contains_any(
+        if guide_choice == PARADIGM_GUIDE_UNSUPERVISED and _contains_any(
             label, ("unsupervised",)
         ):
             return option.iri
-        if guide_choice == "I have some labels, but not many" and _contains_any(
-            label, ("semi-supervised", "semisupervised")
-        ):
-            return option.iri
-        if guide_choice == "An agent learns from rewards/actions" and _contains_any(
+        if guide_choice == PARADIGM_GUIDE_REINFORCEMENT and _contains_any(
             label, ("reinforcement",)
         ):
             return option.iri
@@ -101,9 +107,9 @@ def _render_cluster_keyword_picker(
     if not keywords:
         return cluster_iris
 
-    st.markdown("**Cluster keyword helper**")
+    st.subheader("Help the MLguide by describing your problem")
     st.caption(
-        "Pick keywords that describe the problem. Matching clusters are used to filter recommendations."
+        "Pick keywords that describe the problem. This will help the MLguide prioritize methods that are relevant to your problem context. You can select multiple keywords, or skip if you're not sure."
     )
 
     if hasattr(st, "pills"):
@@ -146,17 +152,12 @@ def _render_paradigm_guidance(paradigms: list[Option], paradigm_labels: dict[str
         return
 
     guide_choice = st.radio(
-        "Learning paradigm guide: Which setup best matches your problem?",
-        options=[
-            "Not sure / skip",
-            "I have labeled target values/classes",
-            "I mostly want patterns/groups without labels",
-            "I have some labels, but not many",
-            "An agent learns from rewards/actions",
-        ],
+        "Which setup best matches your problem?",
+        options=PARADIGM_GUIDE_OPTIONS,
         key="hp_paradigm_guide",
     )
-    if guide_choice == "Not sure / skip":
+    if guide_choice == PARADIGM_GUIDE_SKIP:
+        st.session_state["hp_paradigm"] = ""
         return
 
     suggested_iri = _suggest_paradigm_iri(paradigms, guide_choice)
@@ -165,8 +166,7 @@ def _render_paradigm_guidance(paradigms: list[Option], paradigm_labels: dict[str
         return
 
     st.caption(f"Suggested paradigm: `{paradigm_labels[suggested_iri]}`")
-    if st.button("Use suggested learning paradigm", key="hp_apply_paradigm_guide", use_container_width=True):
-        st.session_state["hp_paradigm"] = suggested_iri
+    st.session_state["hp_paradigm"] = suggested_iri
 
 
 def render_form(
@@ -193,7 +193,7 @@ def render_form(
     # Lifecycle phase selection is temporarily disabled.
     # Keep state logic commented so it is easy to restore later.
     # ensure_single_select_state("hp_phase", phase_iris, phase_iris[0] if phase_iris else "")
-    ensure_single_select_state("hp_paradigm", paradigm_iris, paradigm_iris[0] if paradigm_iris else "")
+    ensure_single_select_state("hp_paradigm", [""] + paradigm_iris, "")
     ensure_single_select_state("hp_task", [""] + task_iris, "")
     ensure_single_select_state("hp_dataset_type", [""] + dataset_iris, "")
     ensure_multi_select_state("hp_conditions", set(condition_iris))
@@ -214,8 +214,8 @@ def render_form(
             # )
             paradigm_iri = st.selectbox(
                 "Learning paradigm",
-                options=paradigm_iris,
-                format_func=lambda iri: paradigm_labels[iri],
+                options=[""] + paradigm_iris,
+                format_func=lambda iri: "—" if iri == "" else paradigm_labels[iri],
                 key="hp_paradigm",
             )
 
@@ -261,7 +261,7 @@ def render_form(
         # "phase_iri": phase_iri,
         "phase_iri": None,
         "cluster_iris": cluster_select_iris,
-        "paradigm_iri": paradigm_iri,
+        "paradigm_iri": None if paradigm_iri == "" else paradigm_iri,
         "task_iri": None if task_iri == "" else task_iri,
         "conditions": cond_selected_iris,
         "performance_prefs": perf_selected_iris,
@@ -273,8 +273,8 @@ def render_form(
 
 def render_recommendations(rows: list[RecommendationItem]) -> str | None:
     # Section header
-    st.subheader("Recommendations")
-    st.caption("Click a method to see more details.")
+    st.subheader("Possible ML Methods")
+    st.caption("Click on a method to see more details.")
 
     # Empty state
     if not rows:

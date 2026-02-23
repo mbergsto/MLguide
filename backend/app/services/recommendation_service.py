@@ -8,7 +8,7 @@ class RecommendationRequest(BaseModel):
     problem_text: Optional[str] = None
     phase_iri: Optional[str] = None
     cluster_iris: List[str] = Field(default_factory=list)
-    paradigm_iri: str
+    paradigm_iri: Optional[str] = None
     max_results: int = Field(default=15, ge=1)
     task_iri: Optional[str] = None
     conditions: List[str] = []
@@ -76,12 +76,15 @@ def build_recommendation_query(req: RecommendationRequest) -> str:
         """
 
     cluster_iris = _dedupe_nonempty(req.cluster_iris)
-    context_values = [f"VALUES ?paradigm {{ <{req.paradigm_iri}> }}"]
-    article_context_patterns = ["?article mla:hasParadigm ?paradigm ."]
+    context_values: List[str] = []
+    article_context_patterns: List[str] = []
     cluster_values_clause = _values_clause("cluster", cluster_iris)
     if cluster_values_clause:
         context_values.insert(0, cluster_values_clause)
         article_context_patterns.insert(0, "?article mla:hasCluster ?cluster .")
+    if req.paradigm_iri:
+        context_values.append(f"VALUES ?paradigm {{ <{req.paradigm_iri}> }}")
+        article_context_patterns.append("?article mla:hasParadigm ?paradigm .")
     if req.phase_iri:
         context_values.insert(0, f"VALUES ?phase {{ <{req.phase_iri}> }}")
         article_context_patterns.insert(0, "?article mla:hasPhase ?phase .")
@@ -126,12 +129,15 @@ def build_recommendation_query(req: RecommendationRequest) -> str:
 
 def build_details_articles_query(req: RecommendationDetailsRequest) -> str:
     cluster_iris = _dedupe_nonempty(req.cluster_iris)
-    context_values = [f"VALUES ?paradigm {{ <{req.paradigm_iri}> }}"]
-    article_context_patterns = ["?article mla:hasParadigm ?paradigm ."]
+    context_values: List[str] = []
+    article_context_patterns: List[str] = []
     cluster_values_clause = _values_clause("cluster", cluster_iris)
     if cluster_values_clause:
         context_values.insert(0, cluster_values_clause)
         article_context_patterns.insert(0, "?article mla:hasCluster ?cluster .")
+    if req.paradigm_iri:
+        context_values.append(f"VALUES ?paradigm {{ <{req.paradigm_iri}> }}")
+        article_context_patterns.append("?article mla:hasParadigm ?paradigm .")
     if req.phase_iri:
         context_values.insert(0, f"VALUES ?phase {{ <{req.phase_iri}> }}")
         article_context_patterns.insert(0, "?article mla:hasPhase ?phase .")

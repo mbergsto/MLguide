@@ -20,7 +20,7 @@ class RecommendationRequest(BaseModel):
     problem_text: str | None = None
     phase_iri: str | None = None
     cluster_iris: list[str] = Field(default_factory=list)
-    paradigm_iri: str
+    paradigm_iri: str | None = None
     max_results: int = Field(default=10, ge=1)
     task_iri: str | None = None
     conditions: list[str] = Field(default_factory=list)
