@@ -10,6 +10,7 @@ import utils.state_helpers as state
 from ui import home_page_ui as ui
 from ui import nav_ui
 from ui import sidebar_auth_ui
+from ui import saved_searches_ui
 
 st.set_page_config(initial_sidebar_state="collapsed")
 
@@ -24,6 +25,7 @@ def main() -> None:
 
     cfg = ApiConfig()
     sidebar_auth_ui.render_sidebar_auth(cfg)
+    saved_searches_ui.render_sidebar_saved_searches(cfg)
     ui.render_page_header()
 
     try:
@@ -66,6 +68,10 @@ def main() -> None:
     rows = st.session_state.get("last_rows", [])
     if not rows:
         return
+
+    last_request_payload = st.session_state.get("last_request_payload")
+    if isinstance(last_request_payload, dict):
+        saved_searches_ui.render_save_search_action(cfg, last_request_payload)
 
     selected_iri = ui.render_recommendations(rows)
     if selected_iri:

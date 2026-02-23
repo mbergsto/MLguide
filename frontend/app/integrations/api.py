@@ -12,6 +12,8 @@ from domain.models import (
     RecommendationDetailsResponse,
     RecommendationRequest,
     RecommendationItem,
+    SavedSearch,
+    SavedSearchPayload,
     UserSession,
 )
 from config.config import settings
@@ -170,6 +172,17 @@ class ApiClient:
         def login(self, username: str) -> UserSession:
             data = self._._post("/users/login", {"username": username})
             return UserSession.model_validate(data)
+
+        def list_saved_searches(self, user_id: int, limit: int = 20) -> list[SavedSearch]:
+            data = self._._get(f"/users/{user_id}/saved-searches?limit={limit}")
+            return self._._parse_list(SavedSearch, data)
+
+        def save_search(self, user_id: int, payload: SavedSearchPayload) -> SavedSearch:
+            data = self._._post(
+                f"/users/{user_id}/saved-searches",
+                payload.model_dump(exclude_none=False),
+            )
+            return SavedSearch.model_validate(data)
 
     @property
     def meta(self) -> "ApiClient.Meta":

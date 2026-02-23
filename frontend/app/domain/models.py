@@ -63,4 +63,21 @@ class UserSession(BaseModel):
     id: int
     username: str
     created_at: str
-    
+
+
+class SavedSearchPayload(BaseModel):
+    problem_text: str | None = None
+    phase_iri: str | None = None
+    cluster_iris: list[str] | None = None
+    paradigm_iri: str | None = None
+    max_results: int | None = None
+    task_iri: str | None = None
+    conditions: list[str] | None = None
+    performance_prefs: list[str] | None = None
+    dataset_type_iri: str | None = None
+
+
+class SavedSearch(SavedSearchPayload):
+    id: int
+    user_id: int
+    created_at: str
