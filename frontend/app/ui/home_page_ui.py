@@ -143,7 +143,6 @@ def _render_cluster_keyword_picker(
         return cluster_iris
 
     matched_cluster_iris = [iri for _, _, iri in sorted(scored)]
-    st.caption(f"Matching clusters: {len(matched_cluster_iris)} of {len(cluster_iris)}")
     return matched_cluster_iris
 
 
