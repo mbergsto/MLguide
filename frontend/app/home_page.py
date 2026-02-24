@@ -8,6 +8,9 @@ from domain.models import RecommendationRequest
 from services import recommendations_service
 import utils.state_helpers as state
 from ui import home_page_ui as ui
+from ui import nav_ui
+from ui import sidebar_auth_ui
+from ui import saved_searches_ui
 
 st.set_page_config(initial_sidebar_state="collapsed")
 
@@ -21,6 +24,8 @@ def main() -> None:
     st.set_page_config(page_title="MLguide 🤖", layout="wide")
 
     cfg = ApiConfig()
+    sidebar_auth_ui.render_sidebar_auth(cfg)
+    saved_searches_ui.render_sidebar_saved_searches(cfg)
     ui.render_page_header()
 
     try:
@@ -45,8 +50,11 @@ def main() -> None:
     req_payload = dict(payload)
     req_payload.setdefault("max_results", settings.max_results_default)
     req = RecommendationRequest.model_validate(req_payload)
+    auto_fetch_after_saved_load = bool(
+        st.session_state.pop(saved_searches_ui.AUTO_FETCH_AFTER_SAVED_SEARCH_LOAD_KEY, False)
+    )
 
-    if submitted:
+    if submitted or auto_fetch_after_saved_load:
         try:
             with st.spinner("Fetching recommendations..."):
                 rows = recommendations_service.fetch_recommendations(cfg, req)
@@ -63,6 +71,10 @@ def main() -> None:
     rows = st.session_state.get("last_rows", [])
     if not rows:
         return
+
+    last_request_payload = st.session_state.get("last_request_payload")
+    if isinstance(last_request_payload, dict):
+        saved_searches_ui.render_save_search_action(cfg, last_request_payload)
 
     selected_iri = ui.render_recommendations(rows)
     if selected_iri:

@@ -156,7 +156,6 @@ def _render_paradigm_guidance(paradigms: list[Option], paradigm_labels: dict[str
         key="hp_paradigm_guide",
     )
     if guide_choice == PARADIGM_GUIDE_SKIP:
-        st.session_state["hp_paradigm"] = ""
         return
 
     suggested_iri = _suggest_paradigm_iri(paradigms, guide_choice)
@@ -186,6 +185,9 @@ def render_form(
     performance_iris, performance_labels = _option_maps(performance)
 
     cluster_select_iris = _render_cluster_keyword_picker(clusters, cluster_iris, cluster_labels)
+    cluster_override = st.session_state.pop("hp_cluster_iris_override", None)
+    if isinstance(cluster_override, list):
+        cluster_select_iris = [str(v) for v in cluster_override]
 
     _render_paradigm_guidance(paradigms, paradigm_labels)
 
