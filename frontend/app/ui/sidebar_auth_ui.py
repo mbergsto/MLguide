@@ -13,7 +13,7 @@ def render_sidebar_auth(cfg: ApiConfig) -> None:
     user = st.session_state.get(AUTH_USER_KEY)
 
     with st.sidebar:
-        st.markdown("### User")
+        st.markdown("### User" if user else "### Log in")
 
         if user:
             username = user.get("username", "")
@@ -39,9 +39,17 @@ def render_sidebar_auth(cfg: ApiConfig) -> None:
         if not submitted:
             return
 
+        clean_username = (username or "").strip()
+        if not clean_username:
+            st.session_state[AUTH_ERROR_KEY] = "Please enter a username."
+            st.rerun()
+        if len(clean_username) < 4:
+            st.session_state[AUTH_ERROR_KEY] = "Username must be at least 4 characters."
+            st.rerun()
+
         try:
             with ApiClient(cfg) as client:
-                logged_in_user = client.users.login(username)
+                logged_in_user = client.users.login(clean_username)
             st.session_state[AUTH_USER_KEY] = logged_in_user.model_dump()
             st.rerun()
         except ApiError as exc:
@@ -51,4 +59,3 @@ def render_sidebar_auth(cfg: ApiConfig) -> None:
         except Exception:
             st.session_state[AUTH_ERROR_KEY] = "Login failed"
             st.rerun()
-

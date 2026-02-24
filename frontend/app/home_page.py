@@ -50,8 +50,11 @@ def main() -> None:
     req_payload = dict(payload)
     req_payload.setdefault("max_results", settings.max_results_default)
     req = RecommendationRequest.model_validate(req_payload)
+    auto_fetch_after_saved_load = bool(
+        st.session_state.pop(saved_searches_ui.AUTO_FETCH_AFTER_SAVED_SEARCH_LOAD_KEY, False)
+    )
 
-    if submitted:
+    if submitted or auto_fetch_after_saved_load:
         try:
             with st.spinner("Fetching recommendations..."):
                 rows = recommendations_service.fetch_recommendations(cfg, req)

@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 class LoginRequest(BaseModel):
-    username: str = Field(min_length=1, max_length=64)
+    username: str = Field(min_length=4, max_length=64)
 
 
 class UserResponse(BaseModel):

@@ -156,7 +156,6 @@ def _render_paradigm_guidance(paradigms: list[Option], paradigm_labels: dict[str
         key="hp_paradigm_guide",
     )
     if guide_choice == PARADIGM_GUIDE_SKIP:
-        st.session_state["hp_paradigm"] = ""
         return
 
     suggested_iri = _suggest_paradigm_iri(paradigms, guide_choice)

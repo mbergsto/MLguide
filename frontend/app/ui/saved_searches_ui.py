@@ -12,6 +12,7 @@ from ui.sidebar_auth_ui import AUTH_USER_KEY
 SIDEBAR_SAVED_SEARCHES_ERROR_KEY = "sidebar_saved_searches_error"
 SIDEBAR_SAVED_SEARCHES_INFO_KEY = "sidebar_saved_searches_info"
 SIDEBAR_SAVED_SEARCHES_LOAD_SELECT_KEY = "sidebar_saved_searches_load_select"
+AUTO_FETCH_AFTER_SAVED_SEARCH_LOAD_KEY = "auto_fetch_after_saved_search_load"
 
 
 def _current_user_id() -> int | None:
@@ -49,6 +50,7 @@ def _apply_saved_search_to_home_form(search: SavedSearch) -> None:
     st.session_state["hp_problem_text"] = search.problem_text or ""
     # Cluster selection is derived in the UI and has no direct widget. Use a one-shot override.
     st.session_state["hp_cluster_iris_override"] = list(search.cluster_iris or [])
+    st.session_state[AUTO_FETCH_AFTER_SAVED_SEARCH_LOAD_KEY] = True
 
     st.session_state.pop("last_rows", None)
     st.session_state.pop("last_request_payload", None)
@@ -65,6 +67,7 @@ def render_save_search_action(cfg: ApiConfig, search_payload: dict) -> None:
         return
 
     payload = SavedSearchPayload.model_validate(search_payload)
+
     try:
         with ApiClient(cfg) as client:
             saved = client.users.save_search(user_id=user_id, payload=payload)
